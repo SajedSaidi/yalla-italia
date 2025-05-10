@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('document_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->longText('description')->nullable();
-            $table->timestamps();
+        Schema::table('programs', function (Blueprint $table) {
+            $table->unique(['university_id', 'major_id', 'academic_year_id'], 'program_unique_triplet');
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('document_types');
+        Schema::table('programs', function (Blueprint $table) {
+            $table->dropUnique('program_unique_triplet');
+        });
     }
 };

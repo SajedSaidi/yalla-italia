@@ -1,59 +1,48 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\StudentResource\RelationManagers;
 
-use App\Filament\Resources\DocumentResource\Pages;
-use App\Filament\Resources\DocumentResource\RelationManagers;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
 use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\Student;
-use Filament\Forms;
+use Closure;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class DocumentResource extends Resource
+class DocumentsRelationManager extends RelationManager
 {
-    protected static ?string $model = Document::class;
+    protected static string $relationship = 'documents';
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'Documents';
-    protected static ?string $navigationGroup = 'Academics';
-
-    public static function form(Form $form): Form
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
+                Hidden::make('student_id')
+                    ->default(fn($livewire) => $livewire->ownerRecord->id),
+
                 Section::make()
                     ->schema([
                         Group::make()
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
-                                        Select::make('student_id')
-                                            ->label('Student')
-                                            ->relationship('student', 'user.name')
-                                            ->options(
-                                                function () {
-                                                    return  Student::all()
-                                                        ->pluck('user.name', 'id')
-                                                        ->toArray();
-                                                }
-                                            )
-                                            ->searchable()
-                                            ->required(),
-
                                         Select::make('document_type_id')
                                             ->label('Type')
                                             ->relationship('documentType', 'name')
@@ -65,7 +54,36 @@ class DocumentResource extends Resource
                                                 }
                                             )
                                             ->searchable()
-                                            ->required(),
+                                            ->required()
+                                            ->preload()
+                                            ->rules([
+                                                // Filament's "Get" helper lets us read other fields' values:
+                                                fn(Get $get): Closure => function (
+                                                    string  $attribute,
+                                                    $value,
+                                                    Closure $fail,
+                                                ) use ($get) {
+                                                    $student_id = $get('student_id');
+                                                    $document_type_id = $get('document_type_id');
+                                                    // Don’t validate until all three IDs are chosen
+                                                    if (! $student_id || ! $document_type_id) {
+                                                        return;
+                                                    }
+
+                                                    $query = Document::query()
+                                                        ->where('student_id', $student_id)
+                                                        ->where('document_type_id', $document_type_id);
+
+                                                    // On edit, ignore the current record:
+                                                    if ($get('id')) {
+                                                        $query->where('id', '!=', $get('id'));
+                                                    }
+
+                                                    if ($query->exists()) {
+                                                        $fail('Student already has this document!');
+                                                    }
+                                                },
+                                            ]),
 
                                         TextInput::make('name')
                                             ->label('Document Name')
@@ -94,24 +112,35 @@ class DocumentResource extends Resource
                                             ->default('submitted')
                                             ->required(),
 
-                                        Textarea::make('notes')
-                                            ->label('Notes')
-                                            ->rows(3),
+                                        RichEditor::make('notes')
+                                            ->label('Notes (Optional)')
+                                            ->disableToolbarButtons(['attachFiles'])
+                                            ->toolbarButtons([
+                                                'bold',
+                                                'italic',
+                                                'underline',
+                                                'strike',
+                                                'h2',
+                                                'h3',
+                                                'bulletList',
+                                                'orderedList',
+                                                'link',
+                                                'undo',
+                                                'redo',
+                                            ])
+                                            ->disableGrammarly()
+                                            ->columnSpanFull()
                                     ]),
                             ]),
                     ]),
             ]);
     }
 
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('document')
             ->columns([
-
-                TextColumn::make('student.user.name')
-                    ->label('Student')
-                    ->sortable()
-                    ->searchable(),
                 TextColumn::make('documentType.name')
                     ->label('Type')
                     ->sortable()
@@ -123,6 +152,9 @@ class DocumentResource extends Resource
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
             ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make()
+            ])
             ->filters([])
             ->actions([
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
@@ -132,21 +164,5 @@ class DocumentResource extends Resource
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListDocuments::route('/'),
-            'create' => Pages\CreateDocument::route('/create'),
-            'edit' => Pages\EditDocument::route('/{record}/edit'),
-        ];
     }
 }

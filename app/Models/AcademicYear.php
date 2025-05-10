@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class AcademicYear extends Model
 {
-    use SoftDeletes;
-
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $fillable = [
         'name',
         'start_year',

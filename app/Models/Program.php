@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Program extends Model
 {
-    use SoftDeletes;
-
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $fillable = [
         'university_id',
         'major_id',
@@ -22,7 +21,7 @@ class Program extends Model
     public function getCompositeTitleAttribute(): string
     {
         $uni   = $this->university->name;
-        $major = $this->major->name;
+        $major = $this->major->composite_title;
         $year  = $this->academicYear->name;
 
         return "{$uni} – {$major} – {$year}";

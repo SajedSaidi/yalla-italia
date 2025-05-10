@@ -15,7 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+
 
 class UniversityResource extends Resource
 {
@@ -34,7 +34,8 @@ class UniversityResource extends Resource
                         Forms\Components\Section::make()->schema([
                             TextInput::make('name')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)
+                                ->unique(ignoreRecord: true),
 
                             TextInput::make('email')
                                 ->email()
@@ -85,6 +86,7 @@ class UniversityResource extends Resource
             ])
             ->filters([])
             ->actions([
+                Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])

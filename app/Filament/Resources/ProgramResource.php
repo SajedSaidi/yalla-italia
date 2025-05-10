@@ -8,20 +8,24 @@ use App\Models\AcademicYear;
 use App\Models\Major;
 use App\Models\Program;
 use App\Models\University;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rule;
 
 class ProgramResource extends Resource
 {
@@ -42,20 +46,59 @@ class ProgramResource extends Resource
                                 Select::make('university_id')
                                     ->label('University')
                                     ->options(University::pluck('name', 'id'))
+                                    ->preload()
                                     ->searchable()
                                     ->required(),
 
                                 Select::make('major_id')
+                                    ->relationship('major', 'composite_title')
                                     ->label('Major')
-                                    ->options(Major::pluck('name', 'id'))
+                                    ->options(
+                                        fn() => Major::all()
+                                            ->pluck('composite_title', 'id')
+                                            ->toArray()
+                                    )
+                                    ->preload()
                                     ->searchable()
                                     ->required(),
 
                                 Select::make('academic_year_id')
                                     ->label('Academic Year')
                                     ->options(AcademicYear::pluck('name', 'id'))
+                                    ->preload()
                                     ->searchable()
-                                    ->required(),
+                                    ->required()
+                                    ->rules([
+                                        // Filament's "Get" helper lets us read other fields' values:
+                                        fn(Get $get): Closure => function (
+                                            string  $attribute,
+                                            $value,
+                                            Closure $fail,
+                                        ) use ($get) {
+                                            $uniId   = $get('university_id');
+                                            $majorId = $get('major_id');
+                                            $yearId  = $value;
+
+                                            // Don’t validate until all three IDs are chosen
+                                            if (! $uniId || ! $majorId || ! $yearId) {
+                                                return;
+                                            }
+
+                                            $query = Program::query()
+                                                ->where('university_id',     $uniId)
+                                                ->where('major_id',           $majorId)
+                                                ->where('academic_year_id',   $yearId);
+
+                                            // On edit, ignore the current record:
+                                            if ($get('id')) {
+                                                $query->where('id', '!=', $get('id'));
+                                            }
+
+                                            if ($query->exists()) {
+                                                $fail('A Program with this University, Major, and Academic Year already exists.');
+                                            }
+                                        },
+                                    ]),
 
                                 DatePicker::make('application_deadline')
                                     ->label('Application Deadline')
@@ -74,10 +117,24 @@ class ProgramResource extends Resource
                                     ->prefix('$')
                                     ->nullable(),
                             ]),
-                        Textarea::make('description')
-                            ->label('Description')
-                            ->rows(4)
-                            ->nullable(),
+                        RichEditor::make('description')
+                            ->label('Description (Optional)')
+                            ->disableToolbarButtons(['attachFiles'])
+                            ->toolbarButtons([
+                                'bold',
+                                'italic',
+                                'underline',
+                                'strike',
+                                'h2',
+                                'h3',
+                                'bulletList',
+                                'orderedList',
+                                'link',
+                                'undo',
+                                'redo',
+                            ])
+                            ->disableGrammarly()
+                            ->columnSpanFull()
                     ])
                     ->columns(1),
             ]);
@@ -92,7 +149,7 @@ class ProgramResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('major.name')
+                TextColumn::make('major.composite_title')
                     ->label('Major')
                     ->sortable()
                     ->searchable(),

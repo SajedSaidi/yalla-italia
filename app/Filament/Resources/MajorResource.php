@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MajorResource\Pages;
 use App\Filament\Resources\MajorResource\RelationManagers;
 use App\Models\Major;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\RichEditor;
@@ -12,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Support\Markdown;
 use Filament\Tables;
@@ -19,7 +21,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+
 
 class MajorResource extends Resource
 {
@@ -37,16 +39,48 @@ class MajorResource extends Resource
                     ->columns(2)
                     ->schema([
                         TextInput::make('name')
+                            ->label('Major Name')
                             ->required()
                             ->maxLength(255),
 
                         Select::make('type')
+                            ->label('Level')
                             ->options([
+                                'single_cycle' => 'Single Cycle',
                                 'bachelor' => 'Bachelor',
                                 'master' => 'Master',
                                 'phd' => 'PhD',
                             ])
-                            ->searchable(),
+                            ->required()
+                            ->rules([
+                                // Filament's "Get" helper lets us read other fields' values:
+                                fn(Get $get): Closure => function (
+                                    string  $attribute,
+                                    $value,
+                                    Closure $fail,
+                                ) use ($get) {
+                                    $name   = $get('name');
+                                    $type = $get('type');
+
+                                    // Don’t validate until all three IDs are chosen
+                                    if (! $name || ! $type) {
+                                        return;
+                                    }
+
+                                    $query = Major::query()
+                                        ->where('name', $name)
+                                        ->where('type', $type);
+
+                                    // On edit, ignore the current record:
+                                    if ($get('id')) {
+                                        $query->where('id', '!=', $get('id'));
+                                    }
+
+                                    if ($query->exists()) {
+                                        $fail('A Major with the same Name and Level already exists!');
+                                    }
+                                },
+                            ]),
                     ]),
                 Forms\Components\Section::make()
                     ->schema([
@@ -78,15 +112,12 @@ class MajorResource extends Resource
             ->columns([
 
                 TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('type')->sortable()
-                    ->badge(),
-                // TextColumn::make('created_at')
-                //     ->dateTime('Y-m-d H:i')
-                //     ->sortable(),
+                TextColumn::make('type')->sortable()->badge(),
             ])
             ->filters([
                 SelectFilter::make('type')
                     ->options([
+                        'single_cycle' => 'Single Cycle',
                         'bachelor' => 'Bachelor',
                         'master' => 'Master',
                         'phd' => 'PhD',

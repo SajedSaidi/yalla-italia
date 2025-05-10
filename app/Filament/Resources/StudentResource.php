@@ -4,11 +4,15 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use App\Filament\Resources\StudentResource\RelationManagers\ApplicationsRelationManager;
+use App\Filament\Resources\StudentResource\RelationManagers\DocumentsRelationManager;
+use App\Filament\Resources\StudentResource\RelationManagers\UserRelationManager;
 use App\Models\Student;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -19,7 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+
 
 class StudentResource extends Resource
 {
@@ -40,6 +44,7 @@ class StudentResource extends Resource
                                 Select::make('user_id')
                                     ->label('User')
                                     ->relationship('user', 'name')
+                                    ->preload()
                                     ->searchable()
                                     ->required()
                                     ->options(function () {
@@ -56,7 +61,8 @@ class StudentResource extends Resource
                                     ->maxLength(20),
                                 DatePicker::make('date_of_birth')
                                     ->label('Date of Birth')
-                                    ->required(),
+                                    ->required()
+                                    ->maxDate(now()),
                                 TextInput::make('address')
                                     ->label('Address')
                                     ->maxLength(255),
@@ -64,10 +70,24 @@ class StudentResource extends Resource
                                     ->label('Nationality')
                                     ->maxLength(100),
                             ]),
-                        Textarea::make('qualifications')
+                        RichEditor::make('qualifications')
                             ->label('Qualifications')
-                            ->rows(4)
-                            ->required(),
+                            ->disableToolbarButtons(['attachFiles'])
+                            ->toolbarButtons([
+                                'bold',
+                                'italic',
+                                'underline',
+                                'strike',
+                                'h2',
+                                'h3',
+                                'bulletList',
+                                'orderedList',
+                                'link',
+                                'undo',
+                                'redo',
+                            ])
+                            ->disableGrammarly()
+                            ->columnSpanFull()
                     ])->collapsible(),
             ]);
     }
@@ -101,7 +121,9 @@ class StudentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\UserRelationManager::class,
+            DocumentsRelationManager::class,
+            ApplicationsRelationManager::class,
+            UserRelationManager::class,
         ];
     }
 

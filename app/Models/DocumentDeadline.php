@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class DocumentDeadline extends Model
 {
-    use SoftDeletes;
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $table = "document_deadlines";
 
 
@@ -16,6 +16,7 @@ class DocumentDeadline extends Model
         'document_type_id',
         'deadline',
         'notes',
+        'university_id',
     ];
 
     public function academicYear()
@@ -26,5 +27,10 @@ class DocumentDeadline extends Model
     public function documentType()
     {
         return $this->belongsTo(DocumentType::class);
+    }
+
+    public function university()
+    {
+        return $this->belongsTo(University::class);
     }
 }

@@ -17,7 +17,6 @@ return new class extends Migration
             $table->enum('type', ['bachelor', 'master', 'phd'])->nullable();
             $table->longText('description')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

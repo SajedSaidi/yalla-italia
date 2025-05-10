@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class University extends Model
 {
-    use SoftDeletes;
-
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $fillable = [
         'name',
         'address',
@@ -21,5 +20,10 @@ class University extends Model
     public function programs()
     {
         return $this->hasMany(Program::class);
+    }
+
+    public function documentDeadlines()
+    {
+        return $this->hasMany(DocumentDeadline::class);
     }
 }

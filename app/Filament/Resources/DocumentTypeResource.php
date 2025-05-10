@@ -18,7 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+
 
 class DocumentTypeResource extends Resource
 {
@@ -44,7 +44,7 @@ class DocumentTypeResource extends Resource
                     ->schema([
 
                         RichEditor::make('description')
-                            // ->label('Description (Optional)')
+                            ->label('Description (Optional)')
                             ->disableToolbarButtons(['attachFiles'])
                             ->toolbarButtons([
                                 'bold',
@@ -91,13 +91,5 @@ class DocumentTypeResource extends Resource
             'create' => Pages\CreateDocumentType::route('/create'),
             'edit' => Pages\EditDocumentType::route('/{record}/edit'),
         ];
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
     }
 }

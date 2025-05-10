@@ -20,7 +20,6 @@ return new class extends Migration
             $table->longText('notes')->nullable();
             $table->enum('status', ['submitted', 'accepted', 'rejected', 'draft', 'missing'])->default('submitted');
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

@@ -11,12 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('document_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->longText('description')->nullable();
-            $table->timestamps();
+        Schema::table('document_deadlines', function (Blueprint $table) {
+            $table->foreignId('university_id')
+                ->constrained();
         });
     }
 
@@ -25,6 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('document_types');
+        Schema::table('document_deadlines', function (Blueprint $table) {
+            $table->dropForeign(['university_id']);
+            $table->dropColumn('university_id');
+        });
     }
 };

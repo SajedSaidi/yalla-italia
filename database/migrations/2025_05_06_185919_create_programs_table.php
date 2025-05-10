@@ -21,7 +21,6 @@ return new class extends Migration
             $table->decimal('enrollment_fee', 8, 2)->nullable();
             $table->longText('description')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

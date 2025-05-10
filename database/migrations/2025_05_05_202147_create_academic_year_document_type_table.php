@@ -18,7 +18,6 @@ return new class extends Migration
             $table->date('deadline')->nullable();
             $table->longText('notes')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

@@ -3,17 +3,34 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+
 
 class Major extends Model
 {
-    use SoftDeletes;
-
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
     protected $fillable = [
         'name',
         'type',
         'description',
     ];
+
+    public static function typeLabels(): array
+    {
+        return [
+            'single_cycle' => 'Single Cycle',
+            'bachelor'     => 'Bachelor',
+            'master'       => 'Master',
+            'phd'          => 'PhD',
+        ];
+    }
+
+    public function getCompositeTitleAttribute(): string
+    {
+        $name   = $this->name;
+        $type = $this->type;
+        $type = self::typeLabels()[$type] ?? $type;
+        return "{$name} – {$type}";
+    }
 
     public function programs()
     {

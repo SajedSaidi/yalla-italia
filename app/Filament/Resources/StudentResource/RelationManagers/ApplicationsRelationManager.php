@@ -1,63 +1,45 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\StudentResource\RelationManagers;
 
-use App\Filament\Resources\ApplicationResource\Pages;
-use App\Filament\Resources\ApplicationResource\RelationManagers;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
 use App\Models\Application;
 use App\Models\Program;
 use App\Models\Student;
 use Closure;
-use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
-
-class ApplicationResource extends Resource
+class ApplicationsRelationManager extends RelationManager
 {
-    protected static ?string $model = Application::class;
+    protected static string $relationship = 'applications';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'Applications';
-    protected static ?string $navigationGroup = 'Academics';
-
-    protected static bool $shouldRegisterNavigation = false;
-
-    public static function form(Form $form): Form
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
+                Hidden::make('student_id')
+                    ->default(fn($livewire) => $livewire->ownerRecord->id),
                 Section::make()
                     ->schema([
                         Group::make()
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
-                                        Select::make('student_id')
-                                            ->label('Student')
-                                            ->relationship('student', 'user.name')
-                                            ->options(
-                                                function () {
-                                                    return  Student::all()
-                                                        ->pluck('user.name', 'id')
-                                                        ->toArray();
-                                                }
-                                            )
-                                            ->preload()
-                                            ->searchable()
-                                            ->required(),
-
                                         Select::make('program_id')
                                             ->label('Program')
                                             ->relationship('program', 'composite_title')
@@ -128,27 +110,25 @@ class ApplicationResource extends Resource
             ]);
     }
 
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('application_id')
             ->columns([
-
-                TextColumn::make('student.user.name')
-                    ->label('Student')
-                    ->sortable()
-                    ->searchable(),
                 TextColumn::make('program.composite_title')
                     ->label('Program')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->sortable()
                     ->badge(),
                 TextColumn::make('created_at')
-                    ->label('Created At')
+                    ->label('Applied At')
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make()
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -157,7 +137,7 @@ class ApplicationResource extends Resource
                         'accepted' => 'Accepted',
                         'rejected' => 'Rejected',
                     ]),
-
+                // filter by program
                 Tables\Filters\SelectFilter::make('program_id')
                     ->multiple()
                     ->preload()
@@ -174,19 +154,5 @@ class ApplicationResource extends Resource
                 Tables\Actions\DeleteBulkAction::make(),
 
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListApplications::route('/'),
-            'create' => Pages\CreateApplication::route('/create'),
-            'edit' => Pages\EditApplication::route('/{record}/edit'),
-        ];
     }
 }

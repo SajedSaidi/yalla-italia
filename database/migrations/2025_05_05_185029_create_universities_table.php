@@ -20,7 +20,6 @@ return new class extends Migration
             $table->mediumText('description')->nullable();
             $table->string('website_url');
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
