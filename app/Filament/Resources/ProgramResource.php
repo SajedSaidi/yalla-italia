@@ -171,12 +171,12 @@ class ProgramResource extends Resource
 
                 TextColumn::make('application_fee')
                     ->label('Application Fee')
-                    ->money('usd')
+                    ->money('euro')
                     ->sortable(),
 
                 TextColumn::make('enrollment_fee')
                     ->label('Enrollment Fee')
-                    ->money('usd')
+                    ->money('euro')
                     ->sortable(),
             ])
             ->filters([
