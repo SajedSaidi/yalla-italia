@@ -71,6 +71,7 @@ class StudentResource extends Resource
                                     ->maxLength(100),
                             ]),
                         RichEditor::make('qualifications')
+                            ->required()
                             ->label('Qualifications')
                             ->disableToolbarButtons(['attachFiles'])
                             ->toolbarButtons([

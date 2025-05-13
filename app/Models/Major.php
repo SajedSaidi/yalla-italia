@@ -36,4 +36,9 @@ class Major extends Model
     {
         return $this->hasMany(Program::class);
     }
+
+    public function languages()
+    {
+        return $this->belongsToMany(Language::class);
+    }
 }

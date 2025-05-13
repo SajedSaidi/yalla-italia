@@ -81,6 +81,13 @@ class MajorResource extends Resource
                                     }
                                 },
                             ]),
+
+                        Select::make('languages')
+                            ->label('Languages')
+                            ->multiple()                            // enable multi-select
+                            ->relationship('languages', 'name')     // BelongsToMany relation
+                            ->preload()                             // load all options on mount
+                            ->searchable(),
                     ]),
                 Forms\Components\Section::make()
                     ->schema([
