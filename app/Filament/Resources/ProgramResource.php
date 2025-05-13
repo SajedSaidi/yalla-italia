@@ -113,14 +113,14 @@ class ProgramResource extends Resource
                                 TextInput::make('application_fee')
                                     ->label('Application Fee')
                                     ->numeric()
-                                    ->prefix('$')
+                                    ->prefix('€')
                                     ->default(0)
                                     ->required(),
 
                                 TextInput::make('enrollment_fee')
                                     ->label('Enrollment Fee')
                                     ->numeric()
-                                    ->prefix('$')
+                                    ->prefix('€')
                                     ->nullable(),
                             ]),
                         RichEditor::make('description')
