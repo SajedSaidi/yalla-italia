@@ -8,6 +8,7 @@ use App\Filament\Resources\StudentResource\RelationManagers\DocumentsRelationMan
 use App\Filament\Resources\StudentResource\RelationManagers\UserRelationManager;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\Auth;
 
 class ViewStudent extends ViewRecord
 {

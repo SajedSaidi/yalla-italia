@@ -101,6 +101,7 @@ class CustomProfileComponent extends Component implements HasForms
                             ->disableGrammarly()
                             ->columnSpanFull(),
                     ])
+                    ->collapsible()
                     ->columns(2),
             ])
             ->statePath('data');
