@@ -23,7 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
+use Illuminate\Support\Facades\Auth;
 
 class StudentResource extends Resource
 {
@@ -32,6 +32,23 @@ class StudentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationLabel = 'Students';
     protected static ?string $navigationGroup = 'Academics';
+
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::user()->isManagerOrAdmin();
+    }
+
 
     public static function form(Form $form): Form
     {
@@ -109,13 +126,18 @@ class StudentResource extends Resource
                 TextColumn::make('nationality'),
             ])
             ->filters([])
+            ->modifyQueryUsing(function (Builder $query) {
+                if (Auth::user()->isStudent()) {
+                    return $query->where('id', Auth::user()->student->id);
+                }
+            })
             ->actions([
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 
@@ -124,7 +146,6 @@ class StudentResource extends Resource
         return [
             DocumentsRelationManager::class,
             ApplicationsRelationManager::class,
-            UserRelationManager::class,
         ];
     }
 

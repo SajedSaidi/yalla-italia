@@ -11,6 +11,7 @@ use Closure;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -22,7 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
+use Illuminate\Support\Facades\Auth;
 
 class ApplicationResource extends Resource
 {
@@ -32,67 +33,41 @@ class ApplicationResource extends Resource
     protected static ?string $navigationLabel = 'Applications';
     protected static ?string $navigationGroup = 'Academics';
 
-    protected static bool $shouldRegisterNavigation = false;
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isStudent();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Hidden::make('student_id')
+                    ->default(Auth::user()->student->id),
                 Section::make()
                     ->schema([
                         Group::make()
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
-                                        Select::make('student_id')
-                                            ->label('Student')
-                                            ->relationship('student', 'user.name')
-                                            ->options(
-                                                function () {
-                                                    return  Student::all()
-                                                        ->pluck('user.name', 'id')
-                                                        ->toArray();
-                                                }
-                                            )
-                                            ->preload()
-                                            ->searchable()
-                                            ->required(),
-
                                         Select::make('program_id')
                                             ->label('Program')
                                             ->relationship('program', 'composite_title')
                                             ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
                                             ->preload()
+                                            ->disabled()
                                             ->searchable()
-                                            ->required()
-                                            ->rules([
-                                                // Filament's "Get" helper lets us read other fields' values:
-                                                fn(Get $get): Closure => function (
-                                                    string  $attribute,
-                                                    $value,
-                                                    Closure $fail,
-                                                ) use ($get) {
-                                                    $student_id = $get('student_id');
-                                                    $program_id = $get('program_id');
-                                                    // Don’t validate until all three IDs are chosen
-                                                    if (! $student_id || ! $program_id) {
-                                                        return;
-                                                    }
-
-                                                    $query = Application::query()
-                                                        ->where('student_id', $student_id)
-                                                        ->where('program_id', $program_id);
-
-                                                    // On edit, ignore the current record:
-                                                    if ($get('id')) {
-                                                        $query->where('id', '!=', $get('id'));
-                                                    }
-
-                                                    if ($query->exists()) {
-                                                        $fail('Student already applied to this program!');
-                                                    }
-                                                },
-                                            ]),
+                                            ->required(),
 
                                         Select::make('status')
                                             ->label('Status')
@@ -132,7 +107,6 @@ class ApplicationResource extends Resource
     {
         return $table
             ->columns([
-
                 TextColumn::make('student.user.name')
                     ->label('Student')
                     ->sortable()
@@ -165,13 +139,17 @@ class ApplicationResource extends Resource
                     ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
                     ->label('Program'),
             ])
+            ->modifyQueryUsing(function (Builder $query): Builder {
+                return $query->where('student_id', Auth::user()->student->id);
+            })
+            ->headerActions([])
             ->actions([
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
-                Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
+                // Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // // Tables\Actions\DeleteBulkAction::make(),
 
             ]);
     }
@@ -185,8 +163,8 @@ class ApplicationResource extends Resource
     {
         return [
             'index' => Pages\ListApplications::route('/'),
-            'create' => Pages\CreateApplication::route('/create'),
-            'edit' => Pages\EditApplication::route('/{record}/edit'),
+            // 'create' => Pages\CreateApplication::route('/create'),
+            // 'edit' => Pages\EditApplication::route('/{record}/edit'),
         ];
     }
 }
