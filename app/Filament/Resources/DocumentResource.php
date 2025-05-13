@@ -1,18 +1,21 @@
 <?php
 
-namespace App\Filament\Resources\StudentResource\RelationManagers;
+namespace App\Filament\Resources;
 
+use App\Filament\Resources\DocumentResource\Pages;
+use App\Filament\Resources\DocumentResource\RelationManagers;
+use App\Models\Document;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-use App\Models\Application;
-use App\Models\Program;
+use App\Models\DocumentType;
 use App\Models\Student;
 use Closure;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
@@ -20,33 +23,48 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
-use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 
-class ApplicationsRelationManager extends RelationManager
+class DocumentResource extends Resource
 {
-    protected static string $relationship = 'applications';
+    protected static ?string $model = Document::class;
 
-    public function form(Form $form): Form
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Academics';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()->isStudent();
+    }
+
+    public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Hidden::make('student_id')
-                    ->default(fn($livewire) => $livewire->ownerRecord->id),
+                    ->default(auth()->user()->student->id),
+
                 Section::make()
                     ->schema([
                         Group::make()
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
-                                        Select::make('program_id')
-                                            ->label('Program')
-                                            ->relationship('program', 'composite_title')
-                                            ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
-                                            ->preload()
+                                        Select::make('document_type_id')
+                                            ->label('Type')
+                                            ->relationship('documentType', 'name')
+                                            ->options(
+                                                function () {
+                                                    return  DocumentType::all()
+                                                        ->pluck('name', 'id')
+                                                        ->toArray();
+                                                }
+                                            )
                                             ->searchable()
                                             ->required()
+                                            ->preload()
                                             ->rules([
                                                 // Filament's "Get" helper lets us read other fields' values:
                                                 fn(Get $get): Closure => function (
@@ -55,15 +73,15 @@ class ApplicationsRelationManager extends RelationManager
                                                     Closure $fail,
                                                 ) use ($get) {
                                                     $student_id = $get('student_id');
-                                                    $program_id = $get('program_id');
+                                                    $document_type_id = $get('document_type_id');
                                                     // Don’t validate until all three IDs are chosen
-                                                    if (! $student_id || ! $program_id) {
+                                                    if (! $student_id || ! $document_type_id) {
                                                         return;
                                                     }
 
-                                                    $query = Application::query()
+                                                    $query = Document::query()
                                                         ->where('student_id', $student_id)
-                                                        ->where('program_id', $program_id);
+                                                        ->where('document_type_id', $document_type_id);
 
                                                     // On edit, ignore the current record:
                                                     if ($get('id')) {
@@ -71,19 +89,36 @@ class ApplicationsRelationManager extends RelationManager
                                                     }
 
                                                     if ($query->exists()) {
-                                                        $fail('Student already applied to this program!');
+                                                        $fail('Student already has this document!');
                                                     }
                                                 },
                                             ]),
 
+                                        TextInput::make('name')
+                                            ->label('Document Name')
+                                            ->required()
+                                            ->maxLength(255),
+
+                                        FileUpload::make('document_url')
+                                            ->label('Upload File')
+                                            ->directory('documents')
+                                            ->disk('public')
+                                            ->visibility('public')
+                                            ->required()
+                                            ->openable()
+                                            ->downloadable()
+                                            ->previewable(),
+
                                         Select::make('status')
                                             ->label('Status')
                                             ->options([
-                                                'pending' => 'Pending',
-                                                'accepted' => 'Accepted',
-                                                'rejected' => 'Rejected',
+                                                'submitted' => 'Submitted',
+                                                'accepted'  => 'Accepted',
+                                                'rejected'  => 'Rejected',
+                                                'draft'     => 'Draft',
+                                                'missing'   => 'Missing',
                                             ])
-                                            ->default('pending')
+                                            ->default('submitted')
                                             ->required(),
 
                                         RichEditor::make('notes')
@@ -110,41 +145,26 @@ class ApplicationsRelationManager extends RelationManager
             ]);
     }
 
-    public function table(Table $table): Table
+    public static function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('application_id')
+            ->recordTitleAttribute('document')
             ->columns([
-                TextColumn::make('program.composite_title')
-                    ->label('Program')
-                    ->sortable(),
-                TextColumn::make('status')
-                    ->label('Status')
+                TextColumn::make('documentType.name')
+                    ->label('Type')
                     ->sortable()
-                    ->badge(),
+                    ->searchable(),
+                TextColumn::make('name')->sortable()->searchable(),
+                TextColumn::make('status')->sortable()->badge(),
                 TextColumn::make('created_at')
-                    ->label('Applied At')
+                    ->label('Uploaded')
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
             ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'accepted' => 'Accepted',
-                        'rejected' => 'Rejected',
-                    ]),
-                // filter by program
-                Tables\Filters\SelectFilter::make('program_id')
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
-                    ->label('Program'),
-            ])
+            ->modifyQueryUsing(function (Builder $query) {
+                return $query->where('student_id', \auth()->user()->student->id);
+            })
+            ->filters([])
             ->actions([
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
@@ -152,7 +172,22 @@ class ApplicationsRelationManager extends RelationManager
             ])
             ->bulkActions([
                 // Tables\Actions\DeleteBulkAction::make(),
-
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListDocuments::route('/'),
+            // 'create' => Pages\CreateDocument::route('/create'),
+            // 'edit' => Pages\EditDocument::route('/{record}/edit'),
+        ];
     }
 }

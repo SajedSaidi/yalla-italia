@@ -80,7 +80,7 @@ class DocumentTypeResource extends Resource
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 

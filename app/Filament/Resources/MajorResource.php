@@ -21,7 +21,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
+use Illuminate\Support\Facades\Auth;
 
 class MajorResource extends Resource
 {
@@ -30,6 +30,11 @@ class MajorResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     protected static ?string $navigationLabel = 'Majors';
     protected static ?string $navigationGroup = 'System';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
 
     public static function form(Form $form): Form
     {
@@ -129,7 +134,7 @@ class MajorResource extends Resource
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 

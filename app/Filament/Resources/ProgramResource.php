@@ -25,6 +25,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class ProgramResource extends Resource
@@ -34,6 +35,11 @@ class ProgramResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationLabel = 'Programs';
     protected static ?string $navigationGroup = 'Academics';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
 
     public static function form(Form $form): Form
     {
@@ -182,7 +188,7 @@ class ProgramResource extends Resource
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 

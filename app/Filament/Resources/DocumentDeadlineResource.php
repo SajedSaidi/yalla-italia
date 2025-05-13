@@ -23,7 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
+use Illuminate\Support\Facades\Auth;
 
 class DocumentDeadlineResource extends Resource
 {
@@ -32,6 +32,11 @@ class DocumentDeadlineResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-calendar';  // Icon choice
     protected static ?string $navigationLabel = 'Document Deadlines';
     protected static ?string $navigationGroup = 'System';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
 
     public static function form(Form $form): Form
     {
@@ -177,7 +182,7 @@ class DocumentDeadlineResource extends Resource
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                // Tables\Actions\DeleteBulkAction::make(),
 
             ]);
     }
