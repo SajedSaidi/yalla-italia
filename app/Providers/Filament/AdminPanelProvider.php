@@ -65,7 +65,7 @@ class AdminPanelProvider extends PanelProvider
                     ->setNavigationLabel('My Profile')
                     ->setIcon('heroicon-o-user')
                     ->setSort(10)
-                    ->canAccess(fn() => Auth::check())
+                    ->canAccess(fn() => Auth::check() && Auth::user()->isStudent())
                     ->shouldRegisterNavigation(true)
                     ->shouldShowDeleteAccountForm(false)
                     ->shouldShowSanctumTokens(false)
