@@ -33,14 +33,20 @@ class StudentResource extends Resource
     protected static ?string $navigationLabel = 'Students';
     protected static ?string $navigationGroup = 'Academics';
 
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()->isManagerOrAdmin();
+    }
+
     public static function canCreate(): bool
     {
-        return auth()->user()->isManagerOrAdmin();
+        return Auth::user()->isManagerOrAdmin();
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()->isManagerOrAdmin();
+        return Auth::user()->isManagerOrAdmin();
     }
 
 
@@ -121,7 +127,7 @@ class StudentResource extends Resource
             ])
             ->filters([])
             ->modifyQueryUsing(function (Builder $query) {
-                if (auth()->user()->isStudent()) {
+                if (Auth::user()->isStudent()) {
                     return $query->where('id', Auth::user()->student->id);
                 }
             })

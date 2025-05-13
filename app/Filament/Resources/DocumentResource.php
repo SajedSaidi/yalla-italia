@@ -26,17 +26,18 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\Auth;
 
 class DocumentResource extends Resource
 {
     protected static ?string $model = Document::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationGroup = 'Academics';
 
     public static function canAccess(): bool
     {
-        return auth()->user()->isStudent();
+        return Auth::user()->isStudent();
     }
 
     public static function form(Form $form): Form
@@ -44,7 +45,7 @@ class DocumentResource extends Resource
         return $form
             ->schema([
                 Hidden::make('student_id')
-                    ->default(auth()->user()->student->id),
+                    ->default(Auth::user()->student->id),
 
                 Section::make()
                     ->schema([
@@ -162,7 +163,7 @@ class DocumentResource extends Resource
                     ->sortable(),
             ])
             ->modifyQueryUsing(function (Builder $query) {
-                return $query->where('student_id', \auth()->user()->student->id);
+                return $query->where('student_id', Auth::user()->student->id);
             })
             ->filters([])
             ->actions([

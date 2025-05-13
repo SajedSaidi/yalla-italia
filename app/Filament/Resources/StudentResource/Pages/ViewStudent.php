@@ -22,7 +22,7 @@ class ViewStudent extends ViewRecord
 
     protected function getAllRelationManagers(): array
     {
-        if (auth()->user()->isManagerOrAdmin())
+        if (Auth::user()->isManagerOrAdmin())
             return [
                 DocumentsRelationManager::class,
                 ApplicationsRelationManager::class,
