@@ -16,8 +16,12 @@ use Filament\Pages\Auth\Register as BaseRegister;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class Register extends BaseRegister implements HasForms
 {
@@ -138,13 +142,14 @@ class Register extends BaseRegister implements HasForms
                             ]),
                     ]),
 
-
             ])
+                ->skippable(false)
         ];
     }
 
     protected function handleRegistration(array $data): Model
     {
+
         // 1) Create the User
         $user = parent::handleRegistration([
             'name'     => $data['name'],
@@ -164,5 +169,13 @@ class Register extends BaseRegister implements HasForms
         ]);
 
         return $user;
+    }
+
+    protected function onValidationError(ValidationException $exception): void
+    {
+        Notification::make()
+            ->title($exception->getMessage())
+            ->danger()
+            ->send();
     }
 }
