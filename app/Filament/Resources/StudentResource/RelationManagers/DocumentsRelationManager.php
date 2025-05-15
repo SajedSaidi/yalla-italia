@@ -145,8 +145,20 @@ class DocumentsRelationManager extends RelationManager
                     ->label('Type')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('status')->sortable()->badge(),
+                TextColumn::make('name')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('status')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'submitted' => 'info',     // Blue - In process
+                        'accepted' => 'success',   // Green - Approved
+                        'rejected' => 'danger',    // Red - Not approved
+                        'draft' => 'gray',        // Gray - Not ready
+                        'missing' => 'warning',    // Orange - Needs attention
+                        default => 'gray',
+                    }),
                 TextColumn::make('created_at')
                     ->label('Uploaded')
                     ->dateTime('Y-m-d H:i')

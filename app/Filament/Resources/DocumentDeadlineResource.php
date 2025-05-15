@@ -76,15 +76,17 @@ class DocumentDeadlineResource extends Resource
                                             $academic_year_id = $get('academic_year_id');
                                             $document_type_id = $get('document_type_id');
                                             $university_id = $get('university_id');
+                                            $education_level = $get('education_level');
                                             // Don’t validate until all three IDs are chosen
-                                            if (! $academic_year_id || ! $document_type_id || ! $university_id) {
+                                            if (! $academic_year_id || ! $document_type_id || ! $university_id || ! $education_level) {
                                                 return;
                                             }
 
                                             $query = DocumentDeadline::query()
                                                 ->where('academic_year_id', $academic_year_id)
                                                 ->where('document_type_id', $document_type_id)
-                                                ->where('university_id', $university_id);
+                                                ->where('university_id', $university_id)
+                                                ->where('education_level', $education_level);
 
                                             // On edit, ignore the current record:
                                             if ($get('id')) {
@@ -92,10 +94,20 @@ class DocumentDeadlineResource extends Resource
                                             }
 
                                             if ($query->exists()) {
-                                                $fail('A Document Deadline with the same Academic Year, Document Type, University already exists!');
+                                                $fail('A Document Deadline with the same Academic Year, Document Type, University, Education Level already exists!');
                                             }
                                         },
                                     ]),
+
+                                Select::make('education_level')
+                                    ->label('Education Level')
+                                    ->options([
+                                        'single_cycle' => 'Single Cycle',
+                                        'bachelor' => 'Bachelor',
+                                        'master' => 'Master',
+                                        'phd' => 'PhD',
+                                    ])
+                                    ->required(),
 
                                 DatePicker::make('deadline')
                                     ->label('Deadline')
@@ -140,6 +152,12 @@ class DocumentDeadlineResource extends Resource
 
                 TextColumn::make('documentType.name')
                     ->label('Document Type')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('education_level')
+                    ->badge()
+                    ->label('Education Level')
                     ->sortable()
                     ->searchable(),
 

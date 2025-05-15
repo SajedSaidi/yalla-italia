@@ -76,6 +76,16 @@ class ApplicationsRelationManager extends RelationManager
                                                 },
                                             ]),
 
+
+                                        Select::make('payment_status')
+                                            ->label('Payment Status')
+                                            ->options([
+                                                'paid' => 'Paid',
+                                                'unpaid' => 'Unpaid',
+                                            ])
+                                            ->default('unpaid')
+                                            ->required(),
+
                                         Select::make('status')
                                             ->label('Status')
                                             ->options([
@@ -85,6 +95,7 @@ class ApplicationsRelationManager extends RelationManager
                                             ])
                                             ->default('pending')
                                             ->required(),
+
 
                                         RichEditor::make('notes')
                                             ->label('Notes (Optional)')
@@ -118,10 +129,30 @@ class ApplicationsRelationManager extends RelationManager
                 TextColumn::make('program.composite_title')
                     ->label('Program')
                     ->sortable(),
+                TextColumn::make('program.application_fee')
+                    ->label('Application Fee')
+                    ->money('EUR')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'paid' => 'success',     // Green - Payment completed
+                        'unpaid' => 'danger',    // Red - Payment needed
+                        default => 'gray',
+                    }),
                 TextColumn::make('status')
                     ->label('Status')
                     ->sortable()
-                    ->badge(),
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'pending' => 'warning',   // Orange - Needs review
+                        'accepted' => 'success',  // Green - Approved
+                        'rejected' => 'danger',   // Red - Denied
+                        default => 'gray',
+                    }),
                 TextColumn::make('created_at')
                     ->label('Applied At')
                     ->dateTime('Y-m-d H:i')
@@ -137,6 +168,14 @@ class ApplicationsRelationManager extends RelationManager
                         'accepted' => 'Accepted',
                         'rejected' => 'Rejected',
                     ]),
+
+                // filter by payment status
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->options([
+                        'paid' => 'Paid',
+                        'unpaid' => 'Unpaid',
+                    ]),
+
                 // filter by program
                 Tables\Filters\SelectFilter::make('program_id')
                     ->multiple()

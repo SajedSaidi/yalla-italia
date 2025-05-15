@@ -43,6 +43,11 @@ class ApplicationResource extends Resource
         return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
     public static function canDelete($record): bool
     {
         return Auth::check() && Auth::user()->isManagerOrAdmin();
@@ -67,6 +72,15 @@ class ApplicationResource extends Resource
                                             ->preload()
                                             ->disabled()
                                             ->searchable()
+                                            ->required(),
+
+                                        Select::make('payment_status')
+                                            ->label('Payment Status')
+                                            ->options([
+                                                'paid' => 'Paid',
+                                                'unpaid' => 'Unpaid',
+                                            ])
+                                            ->default('unpaid')
                                             ->required(),
 
                                         Select::make('status')
@@ -115,10 +129,30 @@ class ApplicationResource extends Resource
                     ->label('Program')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('program.application_fee')
+                    ->label('Application Fee')
+                    ->money('EUR')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'paid' => 'success',     // Green - Completed payment
+                        'unpaid' => 'danger',    // Red - Payment required
+                        default => 'gray',
+                    }),
                 TextColumn::make('status')
                     ->label('Status')
                     ->sortable()
-                    ->badge(),
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'pending' => 'warning',   // Orange - Needs attention
+                        'accepted' => 'success',  // Green - Positive outcome
+                        'rejected' => 'danger',   // Red - Negative outcome
+                        default => 'gray',
+                    }),
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime('Y-m-d H:i')
@@ -132,12 +166,19 @@ class ApplicationResource extends Resource
                         'rejected' => 'Rejected',
                     ]),
 
-                Tables\Filters\SelectFilter::make('program_id')
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
-                    ->label('Program'),
+                // filter by payment status
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->options([
+                        'paid' => 'Paid',
+                        'unpaid' => 'Unpaid',
+                    ]),
+
+                // Tables\Filters\SelectFilter::make('program_id')
+                //     ->multiple()
+                //     ->preload()
+                //     ->searchable()
+                //     ->options(fn() => Program::all()->pluck('composite_title', 'id')->toArray())
+                //     ->label('Program'),
             ])
             ->modifyQueryUsing(function (Builder $query): Builder {
                 return $query->where('student_id', Auth::user()->student->id);

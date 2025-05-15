@@ -83,6 +83,7 @@ class CustomProfileComponent extends Component implements HasForms
                             ]),
 
                         RichEditor::make('qualifications')
+                            ->required()
                             ->label('Qualifications')
                             ->disableToolbarButtons(['attachFiles'])
                             ->toolbarButtons([

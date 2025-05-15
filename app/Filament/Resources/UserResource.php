@@ -44,6 +44,7 @@ class UserResource extends Resource
                             ->columnSpan(1),
                         Forms\Components\TextInput::make('password')
                             ->password()
+                            ->revealable()
                             ->visibleOn('create')
                             ->required()
                             ->minLength(8)
@@ -77,6 +78,12 @@ class UserResource extends Resource
                     ->label('Email Address'),
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'admin' => 'danger',     // Red - Highest authority
+                        'manager' => 'warning',  // Orange - Medium authority
+                        'student' => 'info',     // Blue - Regular user
+                        default => 'gray',
+                    })
                     ->searchable()
                     ->label('Role'),
             ])

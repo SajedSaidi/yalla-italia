@@ -17,6 +17,7 @@ class DocumentDeadline extends Model
         'deadline',
         'notes',
         'university_id',
+        'education_level',
     ];
 
     public function academicYear()

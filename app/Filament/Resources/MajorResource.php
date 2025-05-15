@@ -122,9 +122,20 @@ class MajorResource extends Resource
     {
         return $table
             ->columns([
-
                 TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('type')->sortable()->badge(),
+                TextColumn::make('type')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'single_cycle' => 'warning',  // Orange - Special type
+                        'bachelor' => 'info',         // Blue - Undergraduate
+                        'master' => 'success',        // Green - Graduate
+                        'phd' => 'danger',           // Red - Highest level
+                        default => 'gray',
+                    }),
+                TextColumn::make('languages.name')
+                    ->badge()
+                    ->color('primary')  // Consistent color for all languages
+                    ->label('Languages')
             ])
             ->filters([
                 SelectFilter::make('type')

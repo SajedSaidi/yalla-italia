@@ -22,9 +22,10 @@ class Program extends Model
     {
         $uni   = $this->university->name;
         $major = $this->major->composite_title;
+        $languages = $this->major->languages->pluck('name')->implode(', ');
         $year  = $this->academicYear->name;
 
-        return "{$uni} – {$major} – {$year}";
+        return "{$uni} – {$major} - ({$languages}) – {$year}";
     }
 
     public function university()
