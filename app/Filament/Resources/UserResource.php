@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class UserResource extends Resource
@@ -22,17 +23,22 @@ class UserResource extends Resource
 
     public static function canAccess(): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canEdit($record): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canDelete($record): bool
@@ -71,11 +77,17 @@ class UserResource extends Resource
                             ->helperText('Password must be at least 8 characters')
                             ->columnSpan(1),
                         Forms\Components\Select::make('role')
-                            ->options([
-                                'admin' => 'Admin',
-                                'manager' => 'Manager',
-                                'student' => 'Student',
-                            ])
+                            ->options(
+                                function () {
+                                    return Auth::user()->isManager() ? [
+                                        'student' => 'Student'
+                                    ] : [
+                                        'admin' => 'Admin',
+                                        'manager' => 'Manager',
+                                        'student' => 'Student',
+                                    ];
+                                }
+                            )
                             ->required()
                             ->default('user')
                             ->label('User Role')
@@ -114,6 +126,10 @@ class UserResource extends Resource
                     ])
                     ->label('Role')
             ])
+            ->modifyQueryUsing(function ($query) {
+                if (Auth::user()->isManager())
+                    return $query->where('role', 'student');
+            })
             ->actions([
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
