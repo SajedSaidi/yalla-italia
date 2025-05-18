@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Models\Nationality;
 use App\Models\Student;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -44,7 +45,7 @@ class Register extends BaseRegister implements HasForms
     public $phone;
     public $date_of_birth;
     public $address;
-    public $nationality;
+    public $nationality_id;
     public $qualifications;
 
     public function mount(): void
@@ -114,11 +115,16 @@ class Register extends BaseRegister implements HasForms
                                     ->maxLength(255)
                                     ->columnSpan(1),
 
-                                TextInput::make('nationality')
+                                Select::make('nationality_id')
                                     ->label('Nationality')
+                                    ->preload()
+                                    ->searchable()
                                     ->required()
-                                    ->maxLength(100)
-                                    ->columnSpan(1),
+                                    ->options(function () {
+                                        return Nationality::all()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    }),
 
                                 RichEditor::make('qualifications')
                                     ->label('Qualifications')
@@ -164,7 +170,7 @@ class Register extends BaseRegister implements HasForms
             'phone'         => $data['phone'],
             'date_of_birth' => $data['date_of_birth'],
             'address'       => $data['address'],
-            'nationality'   => $data['nationality'],
+            'nationality_id'   => $data['nationality_id'],
             'qualifications' => $data['qualifications'],
         ]);
 

@@ -50,7 +50,7 @@ class ApplicationResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
+        return Auth::check() && Auth::user()->isAdmin();
     }
 
     public static function form(Form $form): Form

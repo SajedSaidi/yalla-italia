@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class AcademicYearResource extends Resource
 {
@@ -23,6 +24,26 @@ class AcademicYearResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static ?string $navigationLabel = 'Academic Years';
     protected static ?string $navigationGroup = 'System';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {

@@ -18,7 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-
+use Illuminate\Support\Facades\Auth;
 
 class DocumentTypeResource extends Resource
 {
@@ -27,6 +27,26 @@ class DocumentTypeResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Document Types';
     protected static ?string $navigationGroup = 'System';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {

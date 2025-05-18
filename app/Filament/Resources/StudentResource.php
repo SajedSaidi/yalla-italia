@@ -7,6 +7,7 @@ use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Filament\Resources\StudentResource\RelationManagers\ApplicationsRelationManager;
 use App\Filament\Resources\StudentResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\StudentResource\RelationManagers\UserRelationManager;
+use App\Models\Nationality;
 use App\Models\Student;
 use App\Models\User;
 use Filament\Forms;
@@ -21,6 +22,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -33,22 +35,25 @@ class StudentResource extends Resource
     protected static ?string $navigationLabel = 'Students';
     protected static ?string $navigationGroup = 'Academics';
 
-
     public static function canAccess(): bool
     {
-        return Auth::user()->isManagerOrAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canCreate(): bool
     {
-        return Auth::user()->isManagerOrAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canDelete($record): bool
     {
-        return Auth::user()->isManagerOrAdmin();
+        return Auth::check() && Auth::user()->isAdmin();
     }
-
 
     public static function form(Form $form): Form
     {
@@ -83,9 +88,16 @@ class StudentResource extends Resource
                                 TextInput::make('address')
                                     ->label('Address')
                                     ->maxLength(255),
-                                TextInput::make('nationality')
+                                Select::make('nationality_id')
                                     ->label('Nationality')
-                                    ->maxLength(100),
+                                    ->preload()
+                                    ->searchable()
+                                    ->required()
+                                    ->options(function () {
+                                        return Nationality::all()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
                             ]),
                         RichEditor::make('qualifications')
                             ->required()
@@ -123,9 +135,19 @@ class StudentResource extends Resource
                 TextColumn::make('date_of_birth')
                     ->label('DOB')
                     ->date(),
-                TextColumn::make('nationality'),
+                TextColumn::make('nationality.name')
+                    ->searchable()
+                    ->label('Nationality'),
             ])
-            ->filters([])
+            ->filters([
+
+                Tables\Filters\SelectFilter::make('nationality_id')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->options(fn() => Nationality::all()->pluck('name', 'id')->toArray())
+                    ->label('Nationality'),
+            ])
             ->modifyQueryUsing(function (Builder $query) {
                 if (Auth::user()->isStudent()) {
                     return $query->where('id', Auth::user()->student->id);

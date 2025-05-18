@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Nationality;
 use Filament\Forms\Form;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -77,9 +78,16 @@ class CustomProfileComponent extends Component implements HasForms
                                     ->label('Address')
                                     ->maxLength(255),
 
-                                TextInput::make('nationality')
+                                Select::make('nationality_id')
                                     ->label('Nationality')
-                                    ->maxLength(100),
+                                    ->preload()
+                                    ->searchable()
+                                    ->required()
+                                    ->options(function () {
+                                        return Nationality::all()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
                             ]),
 
                         RichEditor::make('qualifications')

@@ -12,15 +12,33 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-
-use Dotswan\MapPicker\Fields\Map;
+use Illuminate\Support\Facades\Auth;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
+
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
 
     public static function form(Form $form): Form
     {
@@ -81,7 +99,7 @@ class UserResource extends Resource
                     ->color(fn(string $state): string => match ($state) {
                         'admin' => 'danger',     // Red - Highest authority
                         'manager' => 'warning',  // Orange - Medium authority
-                        'student' => 'info',     // Blue - Regular user
+                        'student' => 'success',     // Blue - Regular user
                         default => 'gray',
                     })
                     ->searchable()

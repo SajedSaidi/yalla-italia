@@ -14,7 +14,7 @@ class Student extends Model
         'date_of_birth',
         'qualifications',
         'address',
-        'nationality'
+        'nationality_id'
     ];
 
     public function user()
@@ -37,5 +37,10 @@ class Student extends Model
     public function documents()
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function nationality()
+    {
+        return $this->belongsTo(Nationality::class);
     }
 }

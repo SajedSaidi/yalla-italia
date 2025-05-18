@@ -36,6 +36,21 @@ class MajorResource extends Resource
         return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isAdmin();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
