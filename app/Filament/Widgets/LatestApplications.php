@@ -40,7 +40,7 @@ class LatestApplications extends BaseWidget
                     ]),
                 TextColumn::make('created_at')
                     ->label('Submitted')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ]);
     }

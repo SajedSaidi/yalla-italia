@@ -155,7 +155,7 @@ class ApplicationsRelationManager extends RelationManager
                     }),
                 TextColumn::make('created_at')
                     ->label('Applied At')
-                    ->dateTime('Y-m-d H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->headerActions([

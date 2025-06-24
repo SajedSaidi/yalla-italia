@@ -30,17 +30,17 @@ class DocumentTypeResource extends Resource
 
     public static function canAccess(): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canCreate(): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canEdit($record): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function canDelete($record): bool

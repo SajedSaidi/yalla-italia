@@ -107,11 +107,19 @@ class Register extends BaseRegister implements HasForms
                                     ->label('Date of Birth')
                                     ->required()
                                     ->maxDate(now())
+                                    ->displayFormat('d/m/Y')
+                                    ->format('Y-m-d') // Keep database format as Y-m-d
+                                    ->columnSpan(1),
+
+                                TextInput::make('place_of_birth')
+                                    ->label('Place of Birth')
+                                    ->required() // Add required
+                                    ->maxLength(255)
                                     ->columnSpan(1),
 
                                 TextInput::make('address')
                                     ->label('Address')
-                                    ->required()
+                                    ->required() // Already required
                                     ->maxLength(255)
                                     ->columnSpan(1),
 
@@ -166,11 +174,12 @@ class Register extends BaseRegister implements HasForms
 
         // 2) Create related Student record
         Student::create([
-            'user_id'       => $user->id,
-            'phone'         => $data['phone'],
-            'date_of_birth' => $data['date_of_birth'],
-            'address'       => $data['address'],
-            'nationality_id'   => $data['nationality_id'],
+            'user_id'        => $user->id,
+            'phone'          => $data['phone'],
+            'date_of_birth'  => $data['date_of_birth'],
+            'place_of_birth' => $data['place_of_birth'] ?? null,
+            'address'        => $data['address'],
+            'nationality_id' => $data['nationality_id'],
             'qualifications' => $data['qualifications'],
         ]);
 

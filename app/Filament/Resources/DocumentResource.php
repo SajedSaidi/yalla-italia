@@ -120,6 +120,11 @@ class DocumentResource extends Resource
                                                 'missing'   => 'Missing',
                                             ])
                                             ->default('submitted')
+                                            ->disabled(fn() => Auth::user()->isStudent())
+                                            ->dehydrated(fn($state) => !Auth::user()->isStudent())
+                                            ->helperText(fn() => Auth::user()->isStudent()
+                                                ? 'Only administrators can change document status'
+                                                : null)
                                             ->required(),
 
                                         RichEditor::make('notes')
@@ -168,7 +173,7 @@ class DocumentResource extends Resource
                     }),
                 TextColumn::make('created_at')
                     ->label('Uploaded')
-                    ->dateTime('Y-m-d H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->modifyQueryUsing(function (Builder $query) {

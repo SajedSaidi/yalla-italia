@@ -155,7 +155,7 @@ class ApplicationResource extends Resource
                     }),
                 TextColumn::make('created_at')
                     ->label('Created At')
-                    ->dateTime('Y-m-d H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->filters([

@@ -71,11 +71,14 @@ class CustomProfileComponent extends Component implements HasForms
 
                                 DatePicker::make('date_of_birth')
                                     ->label('Date of Birth')
+                                    ->displayFormat('Y-m-d')
+                                    ->format('Y-m-d')
                                     ->required()
                                     ->maxDate(now()),
 
                                 TextInput::make('address')
                                     ->label('Address')
+                                    ->required() // Add required
                                     ->maxLength(255),
 
                                 Select::make('nationality_id')
@@ -87,7 +90,12 @@ class CustomProfileComponent extends Component implements HasForms
                                         return Nationality::all()
                                             ->pluck('name', 'id')
                                             ->toArray();
-                                    })
+                                    }),
+
+                                TI::make('place_of_birth')
+                                    ->label('Place of Birth')
+                                    ->required() // Add required
+                                    ->maxLength(255),
                             ]),
 
                         RichEditor::make('qualifications')

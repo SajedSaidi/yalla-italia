@@ -73,19 +73,20 @@ class UniversityResource extends Resource
 
                             TextInput::make('phone')
                                 ->tel()
-                                ->required()
+                                ->helperText('Optional')
                                 ->maxLength(20),
 
                             TextInput::make('website_url')
                                 ->url()
                                 // ->prefix('https://')
                                 ->prefixIcon('heroicon-m-globe-alt')
-                                ->required()
+                                ->helperText('Optional')
                                 ->maxLength(255),
 
                             Textarea::make('description')
                                 ->rows(3)
-                                ->maxLength(65535),
+                                ->maxLength(65535)
+                                ->helperText('Optional'),
                         ]),
                     ]),
             ]);

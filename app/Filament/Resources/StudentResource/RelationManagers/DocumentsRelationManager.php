@@ -161,7 +161,7 @@ class DocumentsRelationManager extends RelationManager
                     }),
                 TextColumn::make('created_at')
                     ->label('Uploaded')
-                    ->dateTime('Y-m-d H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->headerActions([

@@ -31,6 +31,9 @@ class Dashboard extends BaseDashboard
 
     protected function getActions(): array
     {
+        if (Auth::user()->isStudent()) {
+            return [];
+        }
         return [
             Action::make('notifyApplicationDeadlines')
                 ->label('Notify Application Deadlines')

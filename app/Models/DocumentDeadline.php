@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Carbon\Carbon;
 
 class DocumentDeadline extends Model
 {
@@ -20,6 +20,7 @@ class DocumentDeadline extends Model
         'education_level',
     ];
 
+    // Relationships
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
@@ -33,5 +34,34 @@ class DocumentDeadline extends Model
     public function university()
     {
         return $this->belongsTo(University::class);
+    }
+
+    // Enhanced composite title attribute
+    public function getFormattedTitleAttribute()
+    {
+        // Format education level nicely
+        $educationLevelLabel = match ($this->education_level) {
+            'single_cycle' => 'Single Cycle',
+            'bachelor' => 'Bachelor',
+            'master' => 'Master',
+            'phd' => 'PhD',
+            default => $this->education_level,
+        };
+
+        // Build parts array and filter out empty elements
+        $parts = array_filter([
+            $this->documentType?->name,
+            $this->university?->name,
+            $educationLevelLabel,
+        ]);
+
+        // Join parts with a separator
+        return implode(' | ', $parts);
+    }
+
+    // Legacy title attribute for backward compatibility
+    public function getTitleAttribute()
+    {
+        return $this->formatted_title;
     }
 }

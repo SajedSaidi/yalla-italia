@@ -163,6 +163,7 @@ class DocumentDeadlineResource extends Resource
 
                 TextColumn::make('deadline')
                     ->label('Deadline')
+                    ->date('d-m-Y')
                     ->sortable(),
             ])
             ->filters([

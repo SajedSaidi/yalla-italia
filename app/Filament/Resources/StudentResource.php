@@ -76,6 +76,12 @@ class StudentResource extends Resource
                                             ->orderBy('name')
                                             ->pluck('name', 'id');
                                     }),
+                                Forms\Components\TextInput::make('user_email_display')
+                                    ->label('Email')
+                                    ->formatStateUsing(fn($record) => $record?->user?->email ?? '-')
+                                    ->disabled()
+                                    ->visibleOn(['view', 'edit'])
+                                    ->dehydrated(false),
                                 TextInput::make('phone')
                                     ->label('Phone')
                                     ->tel()
@@ -84,9 +90,16 @@ class StudentResource extends Resource
                                 DatePicker::make('date_of_birth')
                                     ->label('Date of Birth')
                                     ->required()
-                                    ->maxDate(now()),
+                                    ->maxDate(now())
+                                    ->displayFormat('d/m/Y')
+                                    ->format('Y-m-d'), // Keep database format as Y-m-d
+                                TextInput::make('place_of_birth')
+                                    ->label('Place of Birth')
+                                    ->required() // Add required
+                                    ->maxLength(255),
                                 TextInput::make('address')
                                     ->label('Address')
+                                    ->required() // Add required
                                     ->maxLength(255),
                                 Select::make('nationality_id')
                                     ->label('Nationality')
@@ -131,10 +144,13 @@ class StudentResource extends Resource
                     ->label('Student')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('user.email')
+                    ->label('Email')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('phone'),
                 TextColumn::make('date_of_birth')
-                    ->label('DOB')
-                    ->date(),
+                    ->date('d/m/Y'),
                 TextColumn::make('nationality.name')
                     ->searchable()
                     ->label('Nationality'),
