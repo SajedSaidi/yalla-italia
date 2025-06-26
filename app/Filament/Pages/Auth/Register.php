@@ -134,24 +134,11 @@ class Register extends BaseRegister implements HasForms
                                             ->toArray();
                                     }),
 
-                                RichEditor::make('qualifications')
+                                Select::make('qualifications')
                                     ->label('Qualifications')
                                     ->required()
-                                    ->disableToolbarButtons(['attachFiles'])
-                                    ->toolbarButtons([
-                                        'bold',
-                                        'italic',
-                                        'underline',
-                                        'strike',
-                                        'h2',
-                                        'h3',
-                                        'bulletList',
-                                        'orderedList',
-                                        'link',
-                                        'undo',
-                                        'redo',
-                                    ])
-                                    ->disableGrammarly()
+                                    ->searchable()
+                                    ->options(Student::getQualificationOptions())
                                     ->columnSpan(2),       // ← spans both columns
                             ]),
                     ]),

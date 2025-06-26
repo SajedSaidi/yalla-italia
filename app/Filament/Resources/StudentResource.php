@@ -112,24 +112,11 @@ class StudentResource extends Resource
                                             ->toArray();
                                     })
                             ]),
-                        RichEditor::make('qualifications')
+                        Select::make('qualifications')
                             ->required()
                             ->label('Qualifications')
-                            ->disableToolbarButtons(['attachFiles'])
-                            ->toolbarButtons([
-                                'bold',
-                                'italic',
-                                'underline',
-                                'strike',
-                                'h2',
-                                'h3',
-                                'bulletList',
-                                'orderedList',
-                                'link',
-                                'undo',
-                                'redo',
-                            ])
-                            ->disableGrammarly()
+                            ->searchable()
+                            ->options(Student::getQualificationOptions())
                             ->columnSpanFull()
                     ])->collapsible(),
             ]);
@@ -151,6 +138,9 @@ class StudentResource extends Resource
                 TextColumn::make('phone'),
                 TextColumn::make('date_of_birth')
                     ->date('d/m/Y'),
+                TextColumn::make('qualifications')
+                    ->formatStateUsing(fn($state) => Student::QUALIFICATIONS[$state] ?? $state)
+                    ->label('Qualifications'),
                 TextColumn::make('nationality.name')
                     ->searchable()
                     ->label('Nationality'),

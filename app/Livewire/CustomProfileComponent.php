@@ -98,24 +98,11 @@ class CustomProfileComponent extends Component implements HasForms
                                     ->maxLength(255),
                             ]),
 
-                        RichEditor::make('qualifications')
+                        Select::make('qualifications')
                             ->required()
                             ->label('Qualifications')
-                            ->disableToolbarButtons(['attachFiles'])
-                            ->toolbarButtons([
-                                'bold',
-                                'italic',
-                                'underline',
-                                'strike',
-                                'h2',
-                                'h3',
-                                'bulletList',
-                                'orderedList',
-                                'link',
-                                'undo',
-                                'redo',
-                            ])
-                            ->disableGrammarly()
+                            ->searchable()
+                            ->options(Student::getQualificationOptions())
                             ->columnSpanFull(),
                     ])
                     ->collapsible()

@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class Student extends Model
 {
     use \Illuminate\Database\Eloquent\Factories\HasFactory;
+
+    const QUALIFICATIONS = [
+        'bachelor_degree' => 'Bachelor degree',
+        'masters_degree' => 'Masters degree',
+        'lebanese_baccalaureate' => 'Lebanese baccalaureate',
+        'technical_baccalaureate' => 'Technical baccalaureate',
+        'high_school_diploma' => 'High school diploma',
+    ];
+
     protected $fillable = [
         'user_id',
         'phone',
@@ -17,6 +26,16 @@ class Student extends Model
         'address',
         'nationality_id'
     ];
+
+    public static function getQualificationOptions(): array
+    {
+        return self::QUALIFICATIONS;
+    }
+
+    public function getQualificationDisplayAttribute(): string
+    {
+        return self::QUALIFICATIONS[$this->qualifications] ?? $this->qualifications;
+    }
 
     public function user()
     {
