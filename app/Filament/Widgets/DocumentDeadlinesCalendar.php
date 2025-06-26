@@ -33,10 +33,6 @@ class DocumentDeadlinesCalendar extends FullCalendarWidget
             ->with(['documentType', 'university', 'academicYear'])
             ->where('deadline', '>=', now()->subDays(30));
 
-        if (Auth::user()->isStudent()) {
-            $query->where('education_level', Auth::user()->student->current_education_level);
-        }
-
         return $query->get()
             ->map(function (DocumentDeadline $deadline) {
                 $daysLeft = now()->diffInDays($deadline->deadline, false);
