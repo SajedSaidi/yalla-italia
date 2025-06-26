@@ -44,6 +44,7 @@ class Register extends BaseRegister implements HasForms
     // Student details
     public $phone;
     public $date_of_birth;
+    public $place_of_birth;
     public $address;
     public $nationality_id;
     public $qualifications;
