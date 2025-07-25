@@ -15,6 +15,7 @@ class Student extends Model
         'lebanese_baccalaureate' => 'Lebanese baccalaureate',
         'technical_baccalaureate' => 'Technical baccalaureate',
         'high_school_diploma' => 'High school diploma',
+        'freshmen' => 'Freshmen',
     ];
 
     protected $fillable = [
