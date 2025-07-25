@@ -23,6 +23,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_approved',
+        'approved_at',
+        'approved_by',
     ];
 
     /**
@@ -45,12 +48,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_approved' => 'boolean',
+            'approved_at' => 'datetime',
         ];
     }
 
     public function student()
     {
         return $this->hasOne(Student::class);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function isAdmin(): bool
@@ -69,5 +79,19 @@ class User extends Authenticatable
     public function isManagerOrAdmin(): bool
     {
         return $this->role === 'admin' || $this->role === 'manager';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->is_approved;
+    }
+
+    public function approve(User $approver): void
+    {
+        $this->update([
+            'is_approved' => true,
+            'approved_at' => now(),
+            'approved_by' => $approver->id,
+        ]);
     }
 }

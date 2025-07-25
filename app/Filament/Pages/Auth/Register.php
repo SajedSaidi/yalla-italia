@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Mail\NewUserRegistration;
 use App\Models\Nationality;
 use App\Models\Student;
 use App\Models\User;
@@ -21,6 +22,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -151,13 +153,13 @@ class Register extends BaseRegister implements HasForms
 
     protected function handleRegistration(array $data): Model
     {
-
-        // 1) Create the User
-        $user = parent::handleRegistration([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
-            'role'     => $data['role'],
+        // 1) Create the User (not approved by default)
+        $user = User::create([
+            'name'        => $data['name'],
+            'email'       => $data['email'],
+            'password'    => bcrypt($data['password']),
+            'role'        => $data['role'],
+            'is_approved' => false, // Requires admin approval
         ]);
 
         // 2) Create related Student record
@@ -171,7 +173,31 @@ class Register extends BaseRegister implements HasForms
             'qualifications' => $data['qualifications'],
         ]);
 
+        // 3) Send notification to admins
+        $this->notifyAdmins($user);
+
+        // 4) Show success message to user
+        Notification::make()
+            ->title('Registration Successful')
+            ->body('Your account has been created and is pending approval. You will receive an email once approved.')
+            ->success()
+            ->send();
+
         return $user;
+    }
+
+    protected function notifyAdmins(User $user): void
+    {
+        $admins = User::where('role', 'admin')->get();
+
+        foreach ($admins as $admin) {
+            Mail::to($admin->email)->queue(new NewUserRegistration($user));
+        }
+    }
+    // Prevent automatic login after registration
+    protected function getRedirectUrl(): string
+    {
+        return $this->getLoginUrl();
     }
 
     protected function onValidationError(ValidationException $exception): void
