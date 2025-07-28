@@ -9,34 +9,14 @@ class Student extends Model
 {
     use \Illuminate\Database\Eloquent\Factories\HasFactory;
 
-    const QUALIFICATIONS = [
-        'bachelor_degree' => 'Bachelor degree',
-        'masters_degree' => 'Masters degree',
-        'lebanese_baccalaureate' => 'Lebanese baccalaureate',
-        'technical_baccalaureate' => 'Technical baccalaureate',
-        'high_school_diploma' => 'High school diploma',
-        'freshmen' => 'Freshmen',
-    ];
-
     protected $fillable = [
         'user_id',
         'phone',
         'date_of_birth',
         'place_of_birth',
-        'qualifications',
         'address',
         'nationality_id'
     ];
-
-    public static function getQualificationOptions(): array
-    {
-        return self::QUALIFICATIONS;
-    }
-
-    public function getQualificationDisplayAttribute(): string
-    {
-        return self::QUALIFICATIONS[$this->qualifications] ?? $this->qualifications;
-    }
 
     public function user()
     {
@@ -63,5 +43,16 @@ class Student extends Model
     public function nationality()
     {
         return $this->belongsTo(Nationality::class);
+    }
+
+    public function qualifications()
+    {
+        return $this->belongsToMany(Qualification::class, 'student_qualifications');
+    }
+
+    // New relationship for language certificates
+    public function languageCertificates()
+    {
+        return $this->belongsToMany(LanguageCertificate::class, 'student_language_certificates');
     }
 }

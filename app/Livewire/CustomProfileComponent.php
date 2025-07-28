@@ -96,14 +96,25 @@ class CustomProfileComponent extends Component implements HasForms
                                     ->label('Place of Birth')
                                     ->required() // Add required
                                     ->maxLength(255),
+
+                                Select::make('qualifications')
+                                    ->required()
+                                    ->label('Qualifications')
+                                    ->multiple()
+                                    ->searchable()
+                                    ->relationship('qualifications', 'name')
+                                    ->preload()
+                                    ->columnSpanFull(),
+
+                                Select::make('languageCertificates')
+                                    ->label('Language Certificates')
+                                    ->multiple()
+                                    ->searchable()
+                                    ->relationship('languageCertificates', 'name')
+                                    ->preload()
+                                    ->columnSpanFull(),
                             ]),
 
-                        Select::make('qualifications')
-                            ->required()
-                            ->label('Qualifications')
-                            ->searchable()
-                            ->options(Student::getQualificationOptions())
-                            ->columnSpanFull(),
                     ])
                     ->collapsible()
                     ->columns(2),

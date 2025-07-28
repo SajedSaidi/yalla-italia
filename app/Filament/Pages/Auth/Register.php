@@ -3,7 +3,9 @@
 namespace App\Filament\Pages\Auth;
 
 use App\Mail\NewUserRegistration;
+use App\Models\LanguageCertificate;
 use App\Models\Nationality;
+use App\Models\Qualification;
 use App\Models\Student;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -50,6 +52,7 @@ class Register extends BaseRegister implements HasForms
     public $address;
     public $nationality_id;
     public $qualifications;
+    public $languageCertificates;
 
     public function mount(): void
     {
@@ -139,10 +142,29 @@ class Register extends BaseRegister implements HasForms
 
                                 Select::make('qualifications')
                                     ->label('Qualifications')
+                                    ->options(function () {
+                                        return Qualification::all()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
                                     ->required()
+                                    ->multiple()
                                     ->searchable()
-                                    ->options(Student::getQualificationOptions())
-                                    ->columnSpan(2),       // ← spans both columns
+                                    ->preload()
+                                    ->columnSpan(2),
+
+                                Select::make('languageCertificates')
+                                    ->label('Language Certificates')
+                                    ->options(function () {
+                                        return LanguageCertificate::all()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->columnSpan(2),
                             ]),
                     ]),
 
@@ -163,20 +185,29 @@ class Register extends BaseRegister implements HasForms
         ]);
 
         // 2) Create related Student record
-        Student::create([
+        $student = Student::create([
             'user_id'        => $user->id,
             'phone'          => $data['phone'],
             'date_of_birth'  => $data['date_of_birth'],
             'place_of_birth' => $data['place_of_birth'] ?? null,
             'address'        => $data['address'],
             'nationality_id' => $data['nationality_id'],
-            'qualifications' => $data['qualifications'],
         ]);
 
-        // 3) Send notification to admins
+        // 3) Attach qualifications if provided
+        if (isset($data['qualifications']) && is_array($data['qualifications'])) {
+            $student->qualifications()->sync($data['qualifications']);
+        }
+
+        // 4) Attach language certificates if provided
+        if (isset($data['languageCertificates']) && is_array($data['languageCertificates'])) {
+            $student->languageCertificates()->sync($data['languageCertificates']);
+        }
+
+        // 5) Send notification to admins
         $this->notifyAdmins($user);
 
-        // 4) Show success message to user
+        // 6) Show success message to user
         Notification::make()
             ->title('Registration Successful')
             ->body('Your account has been created and is pending approval. You will receive an email once approved.')

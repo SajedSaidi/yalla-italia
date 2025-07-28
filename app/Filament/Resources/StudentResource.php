@@ -61,64 +61,76 @@ class StudentResource extends Resource
             ->schema([
                 Section::make('Student Details')
                     ->schema([
-                        Grid::make(2)
+                        Section::make('User Information')
                             ->schema([
-                                Select::make('user_id')
-                                    ->label('User')
-                                    ->relationship('user', 'name')
-                                    ->preload()
-                                    ->searchable()
-                                    ->required()
-                                    ->options(function () {
-                                        return User::query()
-                                            ->whereDoesntHave('student')
-                                            ->where('role', 'student')
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id');
-                                    }),
-                                Forms\Components\TextInput::make('user_email_display')
-                                    ->label('Email')
-                                    ->formatStateUsing(fn($record) => $record?->user?->email ?? '-')
-                                    ->disabled()
-                                    ->visibleOn(['view', 'edit'])
-                                    ->dehydrated(false),
-                                TextInput::make('phone')
-                                    ->label('Phone')
-                                    ->tel()
-                                    ->required()
-                                    ->maxLength(20),
-                                DatePicker::make('date_of_birth')
-                                    ->label('Date of Birth')
-                                    ->required()
-                                    ->maxDate(now())
-                                    ->displayFormat('d/m/Y')
-                                    ->format('Y-m-d'), // Keep database format as Y-m-d
-                                TextInput::make('place_of_birth')
-                                    ->label('Place of Birth')
-                                    ->required() // Add required
-                                    ->maxLength(255),
-                                TextInput::make('address')
-                                    ->label('Address')
-                                    ->required() // Add required
-                                    ->maxLength(255),
-                                Select::make('nationality_id')
-                                    ->label('Nationality')
-                                    ->preload()
-                                    ->searchable()
-                                    ->required()
-                                    ->options(function () {
-                                        return Nationality::all()
-                                            ->pluck('name', 'id')
-                                            ->toArray();
-                                    })
-                            ]),
-                        Select::make('qualifications')
-                            ->required()
-                            ->label('Qualifications')
-                            ->searchable()
-                            ->options(Student::getQualificationOptions())
-                            ->columnSpanFull()
-                    ])->collapsible(),
+                                Grid::make(2)
+                                    ->schema([
+                                        Select::make('user_id')
+                                            ->label('User')
+                                            ->relationship('user', 'name')
+                                            ->preload()
+                                            ->searchable()
+                                            ->required()
+                                            ->options(function () {
+                                                return User::query()
+                                                    ->whereDoesntHave('student')
+                                                    ->where('role', 'student')
+                                                    ->orderBy('name')
+                                                    ->pluck('name', 'id');
+                                            }),
+                                        Forms\Components\TextInput::make('user_email_display')
+                                            ->label('Email')
+                                            ->formatStateUsing(fn($record) => $record?->user?->email ?? '-')
+                                            ->disabled()
+                                            ->visibleOn(['view', 'edit'])
+                                            ->dehydrated(false),
+                                        TextInput::make('phone')
+                                            ->label('Phone')
+                                            ->tel()
+                                            ->required()
+                                            ->maxLength(20),
+                                        DatePicker::make('date_of_birth')
+                                            ->label('Date of Birth')
+                                            ->required()
+                                            ->maxDate(now())
+                                            ->displayFormat('d/m/Y')
+                                            ->format('Y-m-d'),
+                                        TextInput::make('place_of_birth')
+                                            ->label('Place of Birth')
+                                            ->required()
+                                            ->maxLength(255),
+                                        TextInput::make('address')
+                                            ->label('Address')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Select::make('nationality_id')
+                                            ->label('Nationality')
+                                            ->preload()
+                                            ->searchable()
+                                            ->required()
+                                            ->options(function () {
+                                                return Nationality::all()
+                                                    ->pluck('name', 'id')
+                                                    ->toArray();
+                                            }),
+                                        Select::make('qualifications')
+                                            ->label('Qualifications')
+                                            ->multiple()
+                                            ->relationship('qualifications', 'name')
+                                            ->preload()
+                                            ->searchable()
+                                            ->required()
+                                            ->columnSpanFull(),
+                                        Select::make('languageCertificates')
+                                            ->label('Language Certificates')
+                                            ->multiple()
+                                            ->relationship('languageCertificates', 'name')
+                                            ->preload()
+                                            ->searchable()
+                                            ->columnSpanFull()
+                                    ]),
+                            ])->collapsible(),
+                    ])
             ]);
     }
 
@@ -126,7 +138,6 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
-
                 TextColumn::make('user.name')
                     ->label('Student')
                     ->sortable()
@@ -138,21 +149,39 @@ class StudentResource extends Resource
                 TextColumn::make('phone'),
                 TextColumn::make('date_of_birth')
                     ->date('d/m/Y'),
-                TextColumn::make('qualifications')
-                    ->formatStateUsing(fn($state) => Student::QUALIFICATIONS[$state] ?? $state)
+                TextColumn::make('qualifications.name')
+                    ->badge()
+                    ->color('primary')
                     ->label('Qualifications'),
+                TextColumn::make('languageCertificates.name')
+                    ->badge()
+                    ->color('success')
+                    ->label('Language Certificates'),
                 TextColumn::make('nationality.name')
                     ->searchable()
                     ->label('Nationality'),
             ])
             ->filters([
-
                 Tables\Filters\SelectFilter::make('nationality_id')
                     ->multiple()
                     ->preload()
                     ->searchable()
                     ->options(fn() => Nationality::all()->pluck('name', 'id')->toArray())
                     ->label('Nationality'),
+
+                Tables\Filters\SelectFilter::make('qualifications')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->relationship('qualifications', 'name')
+                    ->label('Qualifications'),
+
+                Tables\Filters\SelectFilter::make('languageCertificates')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->relationship('languageCertificates', 'name')
+                    ->label('Language Certificates'),
             ])
             ->modifyQueryUsing(function (Builder $query) {
                 if (Auth::user()->isStudent()) {
