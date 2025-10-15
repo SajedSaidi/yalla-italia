@@ -102,7 +102,7 @@ class UserResource extends Resource
                         Forms\Components\Toggle::make('is_approved')
                             ->label('User Approved')
                             ->helperText('Toggle to approve/unapprove this user')
-                            ->visible(fn() => Auth::user()->isAdmin())
+                            ->visible(fn() => Auth::user()->isManagerOrAdmin())
                             ->afterStateUpdated(function ($state, $record, $set) {
                                 if ($state && $record && !$record->is_approved) {
                                     // User was just approved
@@ -126,16 +126,16 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('approved_at')
                             ->label('Approved At')
                             ->disabled()
-                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isAdmin())
+                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isManagerOrAdmin())
                             ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('M d, Y \a\t H:i') : null),
 
                         Forms\Components\Select::make('approved_by')
                             ->label('Approved By')
                             ->disabled()
-                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isAdmin())
+                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isManagerOrAdmin())
                             ->relationship('approvedBy', 'name'),
                     ])
-                    ->visible(fn() => Auth::user()->isAdmin())
+                    ->visible(fn() => Auth::user()->isManagerOrAdmin())
                     ->columns(3),
             ]);
     }
@@ -186,7 +186,7 @@ class UserResource extends Resource
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn(User $record) => !$record->is_approved && Auth::user()->isAdmin())
+                    ->visible(fn(User $record) => !$record->is_approved && Auth::user()->isManagerOrAdmin())
                     ->requiresConfirmation()
                     ->action(function (User $record) {
                         $record->update([
@@ -208,7 +208,7 @@ class UserResource extends Resource
                     ->label('Unapprove')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn(User $record) => $record->is_approved && Auth::user()->isAdmin())
+                    ->visible(fn(User $record) => $record->is_approved && Auth::user()->isManagerOrAdmin())
                     ->requiresConfirmation()
                     ->action(function (User $record) {
                         $record->update([
@@ -232,7 +232,7 @@ class UserResource extends Resource
                         ->label('Approve Selected')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn() => Auth::user()->isAdmin())
+                        ->visible(fn() => Auth::user()->isManagerOrAdmin())
                         ->requiresConfirmation()
                         ->action(function ($records) {
                             $approvedCount = 0;
