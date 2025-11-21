@@ -16,6 +16,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Illuminate\Support\Facades\Auth;
 
 class VideoResource extends Resource
 {
@@ -23,6 +24,26 @@ class VideoResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-video-camera';
     protected static ?string $navigationGroup = 'Content Management';
     protected static ?int $navigationSort = 5;
+
+    public static function canAccess(): bool
+    {
+        return Auth::check();
+    }
+
+    public static function canCreate(): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
+    }
 
     public static function form(Form $form): Form
     {

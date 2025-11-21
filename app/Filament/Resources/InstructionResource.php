@@ -29,7 +29,7 @@ class InstructionResource extends Resource
 
     public static function canAccess(): bool
     {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
+        return Auth::check();
     }
 
     public static function canCreate(): bool
@@ -44,7 +44,7 @@ class InstructionResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function form(Form $form): Form
