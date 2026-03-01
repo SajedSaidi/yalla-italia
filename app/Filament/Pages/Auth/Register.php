@@ -147,7 +147,6 @@ class Register extends BaseRegister implements HasForms
                                             ->pluck('name', 'id')
                                             ->toArray();
                                     })
-                                    ->required()
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
@@ -160,7 +159,6 @@ class Register extends BaseRegister implements HasForms
                                             ->pluck('name', 'id')
                                             ->toArray();
                                     })
-                                    ->required()
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
