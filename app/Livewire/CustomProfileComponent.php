@@ -10,24 +10,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Card;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput as FilamentTextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Section as FilamentSection;
-use Filament\Forms\Components\Grid as FilamentGrid;
-use Filament\Forms\Components\TextInput as Input;
-use Filament\Forms\Components\DatePicker as DP;
-use Filament\Forms\Components\RichEditor as RE;
-use Filament\Forms\Components\Section as S;
-use Filament\Forms\Components\Grid as G;
-use Filament\Forms\Components\TextInput as TI;
-use Filament\Forms\Components\DatePicker as DtP;
-use Filament\Forms\Components\RichEditor as REditor;
-use Filament\Forms\Components\Fieldset;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use App\Models\Student;
@@ -41,23 +24,30 @@ class CustomProfileComponent extends Component implements HasForms
     use HasSort;
 
     public ?array $data = [];
+    public ?Student $student = null;
 
     protected static int $sort = 1;
 
     public function mount(): void
     {
-        $student = Auth::user()->student;
-        if (! $student) {
+        $this->student = Auth::user()->student;
+
+        if (! $this->student) {
             // Optionally create a student record if not existing
-            $student = Student::create(['user_id' => Auth::id()]);
+            $this->student = Student::create(['user_id' => Auth::id()]);
         }
-        $this->data = $student->toArray();
-        $this->form->fill($this->data);
+
+        $this->data = $this->student->toArray();
+
+        $this->form
+            ->model($this->student)
+            ->fill($this->data);
     }
 
     public function form(Form $form): Form
     {
         return $form
+            ->model($this->student ?? Student::class)
             ->schema([
                 Section::make('Student Profile')
                     ->schema([
@@ -92,7 +82,7 @@ class CustomProfileComponent extends Component implements HasForms
                                             ->toArray();
                                     }),
 
-                                TI::make('place_of_birth')
+                                TextInput::make('place_of_birth')
                                     ->label('Place of Birth')
                                     ->required() // Add required
                                     ->maxLength(255),
@@ -126,9 +116,9 @@ class CustomProfileComponent extends Component implements HasForms
     {
         $formData = $this->form->getState();
 
-        $student = Auth::user()->student;
-        $student->fill($formData);
-        $student->save();
+        $this->student->fill($formData);
+        $this->student->save();
+        $this->form->model($this->student)->saveRelationships();
 
         Notification::make()
             ->title('Profile Updated')
