@@ -32,6 +32,21 @@ class UserFactory extends Factory
         ];
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn () => ['role' => 'admin', 'is_approved' => true]);
+    }
+
+    public function manager(): static
+    {
+        return $this->state(fn () => ['role' => 'manager', 'is_approved' => true]);
+    }
+
+    public function student(bool $approved = true): static
+    {
+        return $this->state(fn () => ['role' => 'student', 'is_approved' => $approved]);
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */

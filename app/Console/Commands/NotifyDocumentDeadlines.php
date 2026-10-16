@@ -5,8 +5,9 @@ namespace App\Console\Commands;
 use App\Mail\MissingDocumentsReminder;
 use App\Models\Application;
 use App\Models\DocumentDeadline;
+use App\Support\SafeMail;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class NotifyDocumentDeadlines extends Command
@@ -14,86 +15,76 @@ class NotifyDocumentDeadlines extends Command
     protected $signature = 'notify:document-deadlines';
     protected $description = 'Send document deadline reminders to students';
 
-    public function handle()
+    private const EDUCATION_LEVELS = [
+        'single_cycle' => 'Single Cycle',
+        'bachelor' => 'Bachelor',
+        'master' => 'Master',
+        'phd' => 'PhD',
+    ];
+
+    public function handle(): int
     {
-        try {
-            // 1. Fetch all upcoming deadlines (next 30 days)
-            $deadlines = DocumentDeadline::with('documentType')
-                ->whereBetween('deadline', [now(), now()->addDays(30)])
-                ->get()
-                // Group by composite key to lookup per program
-                ->groupBy(fn($d) => implode('-', [
-                    $d->academic_year_id,
-                    $d->university_id,
-                    $d->education_level,
-                ]));
+        // 1. All upcoming deadlines (next 30 days), keyed per academic year / university / education level
+        $deadlines = DocumentDeadline::with('documentType')
+            ->whereBetween('deadline', [now()->startOfDay(), now()->addDays(30)])
+            ->get()
+            ->groupBy(fn ($d) => implode('-', [
+                $d->academic_year_id,
+                $d->university_id,
+                $d->education_level,
+            ]));
 
-            // 2. Fetch all pending applications + submitted documents
-            $applications = Application::with([
-                'student.user',
-                'student.documents.documentType',
-                'program' => fn($q) => $q->with(['academicYear', 'university', 'major'])
-            ])
-                ->where('status', 'pending')
-                ->get();
+        // 2. All pending applications with the student's submitted documents
+        $applications = Application::with([
+            'student.user',
+            'student.documents',
+            'program' => fn ($q) => $q->with(['academicYear', 'university', 'major']),
+        ])
+            ->where('status', 'pending')
+            ->get()
+            ->filter(fn (Application $app) => $app->student?->user && $app->program);
 
-            $emailsSent = 0;
+        $sent = 0;
+        $failed = 0;
 
-            foreach ($applications as $app) {
-                // Build the same composite key for this program
-                $key = implode('-', [
-                    $app->program->academic_year_id,
-                    $app->program->university_id,
-                    $app->program->major->type,
-                ]);
+        // 3. One email per student, merging the missing documents of all their pending applications
+        foreach ($applications->groupBy('student_id') as $apps) {
+            $student = $apps->first()->student;
+            $submittedIds = $student->documents->pluck('document_type_id')->unique();
 
-                // If no deadlines for this program, skip
-                if (! isset($deadlines[$key])) {
-                    continue;
-                }
+            $missingDocs = $apps
+                ->flatMap(function (Application $app) use ($deadlines, $submittedIds) {
+                    $program = $app->program;
+                    $key = implode('-', [$program->academic_year_id, $program->university_id, $program->major?->type]);
 
-                // Determine which document_type_ids are required vs submitted
-                $requiredIds = $deadlines[$key]->pluck('document_type_id')->unique();
-                $submittedIds = $app->student->documents
-                    ->pluck('document_type_id')
-                    ->unique();
+                    return ($deadlines[$key] ?? collect())
+                        ->reject(fn ($d) => $submittedIds->contains($d->document_type_id))
+                        ->map(fn ($d) => [
+                            'key'             => "{$d->id}",
+                            'education_level' => self::EDUCATION_LEVELS[$program->major?->type] ?? $program->major?->type,
+                            'university'      => $program->university?->name,
+                            'academic_year'   => $program->academicYear?->name,
+                            'document_name'   => $d->documentType?->name,
+                            'deadline'        => Carbon::parse($d->deadline)->format('M j, Y'),
+                            'sort'            => Carbon::parse($d->deadline)->timestamp,
+                        ]);
+                })
+                ->unique('key')
+                ->sortBy('sort')
+                ->values();
 
-                // Compute the missing ones
-                $missingIds = $requiredIds->diff($submittedIds);
-                if ($missingIds->isEmpty()) {
-                    continue;
-                }
-
-                // Build a list of missing document info for this student
-                $missingDocs = $deadlines[$key]
-                    ->whereIn('document_type_id', $missingIds)
-                    ->map(fn($d) => [
-                        'education_level' => $app->program->major->type,
-                        'university'     => $app->program->university->name,
-                        'academic_year'  => $app->program->academicYear->name,
-                        'document_name'  => $d->documentType->name,
-                        'deadline'       => $d->deadline,
-                    ]);
-
-                // dd($missingDocs);
-                // Send a single email per student
-                Mail::to($app->student->user->email)
-                    ->queue(new MissingDocumentsReminder(
-                        $app->student->user->name,
-                        $missingDocs
-                    ));
-
-                $emailsSent++;
+            if ($missingDocs->isEmpty()) {
+                continue;
             }
 
-            $this->info("Document deadline reminders sent to {$emailsSent} students.");
-            Log::info("Document deadline reminders sent to {$emailsSent} students.");
-
-            return 0;
-        } catch (\Exception $e) {
-            $this->error('Failed to send document deadline reminders: ' . $e->getMessage());
-            Log::error('Failed to send document deadline reminders: ' . $e->getMessage());
-            return 1;
+            SafeMail::send($student->user->email, new MissingDocumentsReminder($student->user->name, $missingDocs)) ? $sent++ : $failed++;
         }
+
+        $message = "Document deadline reminders sent to {$sent} student(s)" . ($failed ? ", {$failed} failed (see log)." : '.');
+
+        $this->info($message);
+        Log::info($message);
+
+        return $failed ? self::FAILURE : self::SUCCESS;
     }
 }

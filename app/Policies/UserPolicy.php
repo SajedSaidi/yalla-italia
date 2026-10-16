@@ -3,63 +3,62 @@
 namespace App\Policies;
 
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
+/**
+ * The Users page is admin only. Managers manage student accounts from the
+ * Students page instead, where the account and the student profile are edited together.
+ */
 class UserPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
         return $user->isAdmin();
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, User $model): bool
     {
         return $user->isAdmin();
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
         return $user->isAdmin();
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, User $model): bool
     {
         return $user->isAdmin();
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Admins can delete any account but their own; managers can delete
+     * student accounts only (never admins or other managers).
      */
     public function delete(User $user, User $model): bool
     {
-        return $user->isAdmin();
+        if ($user->is($model)) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isManager() && $model->isStudent();
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
+    public function deleteAny(User $user): bool
+    {
+        return $user->isManagerOrAdmin();
+    }
+
     public function restore(User $user, User $model): bool
     {
-        return $user->isAdmin();
+        return $this->delete($user, $model);
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, User $model): bool
     {
-        return $user->isAdmin();
+        return $this->delete($user, $model);
     }
 }

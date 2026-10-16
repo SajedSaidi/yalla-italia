@@ -18,6 +18,15 @@ class Student extends Model
         'nationality_id'
     ];
 
+    protected static function booted(): void
+    {
+        // documents.student_id is a restricting foreign key; deleting each document
+        // individually also removes its stored file. Applications and pivots cascade in the DB.
+        static::deleting(function (Student $student) {
+            $student->documents()->get()->each->delete();
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

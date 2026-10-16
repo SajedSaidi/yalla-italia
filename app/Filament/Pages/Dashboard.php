@@ -7,7 +7,6 @@ use App\Filament\Widgets\DocumentsTimeline;
 use App\Filament\Widgets\LatestApplications;
 use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\StudentApplicationChart;
-use App\Filament\Widgets\DocumentDeadlinesCalendar;
 use App\Filament\Widgets\MissingDocumentsAlert;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +28,6 @@ class Dashboard extends BaseDashboard
         return [
             // StatsOverview::class,
             // // Auth::user()->isStudent() ? StudentApplicationChart::class : AdminApplicationChart::class,
-            // DocumentDeadlinesCalendar::class,
             // MissingDocumentsAlert::class,
 
         ];

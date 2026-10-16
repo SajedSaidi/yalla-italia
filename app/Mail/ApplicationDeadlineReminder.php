@@ -3,14 +3,13 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 
-class ApplicationDeadlineReminder extends Mailable implements ShouldQueue
+class ApplicationDeadlineReminder extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -55,7 +54,7 @@ class ApplicationDeadlineReminder extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reminder: Upcoming Application Deadlines – Yalla Italia',
+            subject: 'Reminder: upcoming application deadlines – ' . config('mail.from.name'),
         );
     }
 

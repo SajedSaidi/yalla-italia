@@ -8,7 +8,9 @@ use App\Models\Nationality;
 use App\Models\Qualification;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\SafeMail;
 use Filament\Facades\Filament;
+use Filament\Http\Responses\Auth\Contracts\RegistrationResponse;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
@@ -22,6 +24,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -173,36 +176,41 @@ class Register extends BaseRegister implements HasForms
 
     protected function handleRegistration(array $data): Model
     {
-        // 1) Create the User (not approved by default)
-        $user = User::create([
-            'name'        => $data['name'],
-            'email'       => $data['email'],
-            'password'    => bcrypt($data['password']),
-            'role'        => $data['role'],
-            'is_approved' => false, // Requires admin approval
-        ]);
+        $user = DB::transaction(function () use ($data) {
+            // 1) Create the User (not approved by default).
+            // The role is fixed server-side: the hidden form field could be tampered with.
+            $user = User::create([
+                'name'        => $data['name'],
+                'email'       => $data['email'],
+                'password'    => $data['password'],
+                'role'        => 'student',
+                'is_approved' => false, // Requires staff approval
+            ]);
 
-        // 2) Create related Student record
-        $student = Student::create([
-            'user_id'        => $user->id,
-            'phone'          => $data['phone'],
-            'date_of_birth'  => $data['date_of_birth'],
-            'place_of_birth' => $data['place_of_birth'] ?? null,
-            'address'        => $data['address'],
-            'nationality_id' => $data['nationality_id'],
-        ]);
+            // 2) Create related Student record
+            $student = Student::create([
+                'user_id'        => $user->id,
+                'phone'          => $data['phone'],
+                'date_of_birth'  => $data['date_of_birth'],
+                'place_of_birth' => $data['place_of_birth'] ?? null,
+                'address'        => $data['address'],
+                'nationality_id' => $data['nationality_id'],
+            ]);
 
-        // 3) Attach qualifications if provided
-        if (isset($data['qualifications']) && is_array($data['qualifications'])) {
-            $student->qualifications()->sync($data['qualifications']);
-        }
+            // 3) Attach qualifications if provided
+            if (isset($data['qualifications']) && is_array($data['qualifications'])) {
+                $student->qualifications()->sync($data['qualifications']);
+            }
 
-        // 4) Attach language certificates if provided
-        if (isset($data['languageCertificates']) && is_array($data['languageCertificates'])) {
-            $student->languageCertificates()->sync($data['languageCertificates']);
-        }
+            // 4) Attach language certificates if provided
+            if (isset($data['languageCertificates']) && is_array($data['languageCertificates'])) {
+                $student->languageCertificates()->sync($data['languageCertificates']);
+            }
 
-        // 5) Send notification to admins
+            return $user;
+        });
+
+        // 5) Let admins and managers know someone is waiting for approval
         $this->notifyAdmins($user);
 
         // 6) Show success message to user
@@ -217,16 +225,38 @@ class Register extends BaseRegister implements HasForms
 
     protected function notifyAdmins(User $user): void
     {
-        $admins = User::where('role', 'admin')->get();
+        $staff = User::whereIn('role', ['admin', 'manager'])->get();
 
-        foreach ($admins as $admin) {
-            Mail::to($admin->email)->queue(new NewUserRegistration($user));
+        foreach ($staff as $member) {
+            SafeMail::send($member->email, new NewUserRegistration($user));
         }
     }
+    /**
+     * Filament signs the new user in after registering; a student still has to be
+     * approved, so end that session right away and go back to the login page
+     * (the "pending approval" notification is flashed to the session).
+     */
+    public function register(): ?RegistrationResponse
+    {
+        $response = parent::register();
+
+        $user = Filament::auth()->user();
+
+        if ($user && $user->isStudent() && ! $user->isApproved()) {
+            Filament::auth()->logout();
+
+            $this->redirect(Filament::getLoginUrl());
+
+            return null;
+        }
+
+        return $response;
+    }
+
     // Prevent automatic login after registration
     protected function getRedirectUrl(): string
     {
-        return $this->getLoginUrl();
+        return Filament::getLoginUrl();
     }
 
     protected function onValidationError(ValidationException $exception): void

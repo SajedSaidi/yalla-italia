@@ -2,52 +2,30 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Filters\RegisteredBetweenFilter;
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
-use App\Mail\UserApproved;
 use App\Models\User;
-use Filament\Tables\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Admin only (see UserPolicy). Managers handle student accounts from StudentResource.
+ */
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
 
-    public static function canAccess(): bool
-    {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
-    }
-
-    public static function canCreate(): bool
-    {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
-    }
-
-    public static function canView(Model $record): bool
-    {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
-    }
-
-    public static function canEdit($record): bool
-    {
-        return Auth::check() && Auth::user()->isManagerOrAdmin();
-    }
-
-    public static function canDelete($record): bool
-    {
-        return Auth::check() && Auth::user()->isAdmin();
-    }
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
@@ -72,28 +50,24 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->password()
                             ->revealable()
-                            ->visibleOn('create')
-                            ->required()
+                            ->required(fn (string $operation) => $operation === 'create')
+                            ->dehydrated(fn (?string $state) => filled($state))
                             ->minLength(8)
                             ->maxLength(191)
-                            ->placeholder('Enter password')
+                            ->placeholder(fn (string $operation) => $operation === 'create' ? 'Enter password' : 'Leave blank to keep the current password')
                             ->helperText('Password must be at least 8 characters')
+                            ->hiddenOn('view')
                             ->columnSpan(1),
                         Forms\Components\Select::make('role')
-                            ->options(
-                                function () {
-                                    return Auth::user()->isManager() ? [
-                                        'student' => 'Student'
-                                    ] : [
-                                        'admin' => 'Admin',
-                                        'manager' => 'Manager',
-                                        'student' => 'Student',
-                                    ];
-                                }
-                            )
+                            ->options([
+                                'admin' => 'Admin',
+                                'manager' => 'Manager',
+                                'student' => 'Student',
+                            ])
                             ->required()
-                            ->default('user')
+                            ->default('student')
                             ->label('User Role')
+                            ->helperText('Student accounts with a full profile are best created from the Students page.')
                             ->columnSpan(1),
                     ])->columns(2),
 
@@ -101,41 +75,18 @@ class UserResource extends Resource
                     ->schema([
                         Forms\Components\Toggle::make('is_approved')
                             ->label('User Approved')
-                            ->helperText('Toggle to approve/unapprove this user')
-                            ->visible(fn() => Auth::user()->isManagerOrAdmin())
-                            ->afterStateUpdated(function ($state, $record, $set) {
-                                if ($state && $record && !$record->is_approved) {
-                                    // User was just approved
-                                    $record->update([
-                                        'is_approved' => true,
-                                        'approved_at' => now(),
-                                        'approved_by' => Auth::id(),
-                                    ]);
+                            ->helperText('Approved students can sign in. They are emailed automatically when approved.'),
 
-                                    // Send approval email
-                                    Mail::to($record->email)->queue(new UserApproved($record));
-
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('User Approved')
-                                        ->success()
-                                        ->body("User {$record->name} has been approved and notified via email.")
-                                        ->send();
-                                }
-                            }),
-
-                        Forms\Components\TextInput::make('approved_at')
+                        Forms\Components\Placeholder::make('approved_at_display')
                             ->label('Approved At')
-                            ->disabled()
-                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isManagerOrAdmin())
-                            ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('M d, Y \a\t H:i') : null),
+                            ->content(fn (?User $record) => $record?->approved_at?->format('M d, Y \a\t H:i') ?? '—')
+                            ->visible(fn (?User $record) => (bool) $record?->is_approved),
 
-                        Forms\Components\Select::make('approved_by')
+                        Forms\Components\Placeholder::make('approved_by_display')
                             ->label('Approved By')
-                            ->disabled()
-                            ->visible(fn($get) => $get('is_approved') && Auth::user()->isManagerOrAdmin())
-                            ->relationship('approvedBy', 'name'),
+                            ->content(fn (?User $record) => $record?->approvedBy?->name ?? '—')
+                            ->visible(fn (?User $record) => (bool) $record?->is_approved),
                     ])
-                    ->visible(fn() => Auth::user()->isManagerOrAdmin())
                     ->columns(3),
             ]);
     }
@@ -143,22 +94,32 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()
+                    ->sortable()
+                    ->copyable(),
+                Tables\Columns\TextColumn::make('role')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => ucfirst($state))
+                    ->color(fn (string $state) => match ($state) {
+                        'admin' => 'success',
+                        'manager' => 'warning',
+                        default => 'primary',
+                    })
                     ->sortable(),
-                Tables\Columns\BadgeColumn::make('role')
-                    ->colors([
-                        'success' => 'admin',
-                        'warning' => 'manager',
-                        'primary' => 'student',
-                    ]),
                 Tables\Columns\IconColumn::make('is_approved')
                     ->boolean()
-                    ->label('Student Approval'),
+                    ->label('Approved')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Registered')
+                    ->dateTime('M d, Y H:i')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('approved_at')
                     ->label('Approved At')
                     ->dateTime('M d, Y H:i')
@@ -166,6 +127,12 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('approvedBy.name')
                     ->label('Approved By')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Last Updated')
+                    ->dateTime('M d, Y H:i')
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -180,47 +147,37 @@ class UserResource extends Resource
                     ->placeholder('All users')
                     ->trueLabel('Approved users')
                     ->falseLabel('Pending approval'),
+                RegisteredBetweenFilter::make(),
             ])
             ->actions([
                 Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn(User $record) => !$record->is_approved && Auth::user()->isManagerOrAdmin())
+                    ->visible(fn (User $record) => ! $record->is_approved)
                     ->requiresConfirmation()
                     ->action(function (User $record) {
-                        $record->update([
-                            'is_approved' => true,
-                            'approved_at' => now(),
-                            'approved_by' => Auth::id(),
-                        ]);
+                        $record->approve(Auth::user());
 
-                        // Send approval email to user
-                        Mail::to($record->email)->queue(new UserApproved($record));
-
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('User Approved')
                             ->success()
-                            ->body("User {$record->name} has been approved and notified.")
+                            ->body("{$record->name} has been approved and notified by email.")
                             ->send();
                     }),
                 Action::make('unapprove')
                     ->label('Unapprove')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn(User $record) => $record->is_approved && Auth::user()->isManagerOrAdmin())
+                    ->visible(fn (User $record) => $record->is_approved)
                     ->requiresConfirmation()
                     ->action(function (User $record) {
-                        $record->update([
-                            'is_approved' => false,
-                            'approved_at' => null,
-                            'approved_by' => null,
-                        ]);
+                        $record->unapprove();
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('User Unapproved')
                             ->warning()
-                            ->body("User {$record->name} has been unapproved.")
+                            ->body("{$record->name} has been unapproved.")
                             ->send();
                     }),
                 Tables\Actions\EditAction::make(),
@@ -232,31 +189,45 @@ class UserResource extends Resource
                         ->label('Approve Selected')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn() => Auth::user()->isManagerOrAdmin())
                         ->requiresConfirmation()
-                        ->action(function ($records) {
-                            $approvedCount = 0;
-                            foreach ($records as $record) {
-                                if (!$record->is_approved) {
-                                    $record->update([
-                                        'is_approved' => true,
-                                        'approved_at' => now(),
-                                        'approved_by' => Auth::id(),
-                                    ]);
-                                    Mail::to($record->email)->queue(new UserApproved($record));
-                                    $approvedCount++;
-                                }
-                            }
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Collection $records) {
+                            $pending = $records->reject(fn (User $record) => $record->is_approved);
+                            $pending->each(fn (User $record) => $record->approve(Auth::user()));
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Users Approved')
                                 ->success()
-                                ->body("{$approvedCount} user(s) have been approved and notified.")
+                                ->body("{$pending->count()} user(s) have been approved and notified.")
                                 ->send();
                         }),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    static::deleteAllowedBulkAction(),
                 ]),
             ]);
+    }
+
+    /**
+     * Bulk delete that only removes the selected users the current user may delete
+     * (never themselves, and never admins/managers when run by a manager).
+     */
+    public static function deleteAllowedBulkAction(): Tables\Actions\DeleteBulkAction
+    {
+        return Tables\Actions\DeleteBulkAction::make()
+            ->using(function (Collection $records) {
+                $allowed = $records->filter(fn (User $record) => Auth::user()->can('delete', $record));
+
+                DB::transaction(fn () => $allowed->each->delete());
+
+                $skipped = $records->count() - $allowed->count();
+
+                if ($skipped > 0) {
+                    Notification::make()
+                        ->title("{$skipped} selected account(s) were skipped")
+                        ->body('You are not allowed to delete them.')
+                        ->warning()
+                        ->send();
+                }
+            });
     }
 
     public static function getRelations(): array

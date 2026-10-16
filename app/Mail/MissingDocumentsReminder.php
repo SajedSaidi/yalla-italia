@@ -25,14 +25,14 @@ class MissingDocumentsReminder extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Action Required: Missing Application Documents',
+            subject: 'Action required: documents missing for your application',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.documents.missing',  // your pure-HTML Blade template
+            markdown: 'emails.documents.missing',
             with: [
                 'studentName' => $this->studentName,
                 'missingDocs' => $this->missingDocs,

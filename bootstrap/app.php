@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'approved' => EnsureUserIsApproved::class,
         ]);
+
+        // There is no standalone "login" route: guests go to the Filament login page.
+        $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

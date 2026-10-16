@@ -1,5 +1,4 @@
 <?php
-// filepath: c:\Users\sajed\OneDrive\Desktop\yalla-italia\app\Mail\UserApproved.php
 
 namespace App\Mail;
 
@@ -21,14 +20,14 @@ class UserApproved extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Account Has Been Approved - Yalla Italia',
+            subject: 'Your account has been approved – ' . config('mail.from.name'),
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.user.approved',
+            markdown: 'emails.user.approved',
             with: [
                 'user' => $this->user,
                 'loginUrl' => route('filament.admin.auth.login'),

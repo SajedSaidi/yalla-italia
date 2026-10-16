@@ -1,8 +1,9 @@
 <?php
-// filepath: c:\Users\sajed\OneDrive\Desktop\yalla-italia\app\Mail\NewUserRegistration.php
 
 namespace App\Mail;
 
+use App\Filament\Resources\StudentResource;
+use App\Filament\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -21,17 +22,22 @@ class NewUserRegistration extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New User Registration Requires Approval - Yalla Italia',
+            subject: "New registration awaiting approval: {$this->user->name}",
         );
     }
 
     public function content(): Content
     {
+        // Students are reviewed from the Students page, which both admins and managers can open.
+        $approvalUrl = $this->user->student
+            ? StudentResource::getUrl('view', ['record' => $this->user->student], panel: 'admin')
+            : UserResource::getUrl('edit', ['record' => $this->user], panel: 'admin');
+
         return new Content(
-            view: 'emails.admin.new-user-registration',
+            markdown: 'emails.admin.new-user-registration',
             with: [
                 'user' => $this->user,
-                'approvalUrl' => route('filament.admin.resources.users.edit', $this->user),
+                'approvalUrl' => $approvalUrl,
             ],
         );
     }

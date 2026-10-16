@@ -2,9 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
+use App\Filament\Pages\Auth\RequestPasswordReset;
 use App\Filament\Pages\Dashboard;
-use App\Filament\Pages\Profile;
 use App\Http\Middleware\EnsureUserIsApproved;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -24,8 +25,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Joaopaulolndev\FilamentEditProfile\FilamentEditProfilePlugin;
-use OpenSpout\Writer\XLSX\Options\PageSetup;
-use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -38,8 +37,9 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop(true)
             ->brandLogo(fn() => view('components.brand-logo'))
             ->brandLogoHeight('3rem')
-            ->login()
+            ->login(Login::class)
             ->registration(Register::class)
+            ->passwordReset(RequestPasswordReset::class)
             ->revealablePasswords()
             ->colors([
                 'primary' => Color::Emerald,
@@ -84,7 +84,6 @@ class AdminPanelProvider extends PanelProvider
                     ->customProfileComponents([
                         \App\Livewire\CustomProfileComponent::class,
                     ]),
-                FilamentFullCalendarPlugin::make()
             ])
         ;
     }

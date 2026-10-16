@@ -48,7 +48,7 @@ class MajorResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return Auth::check() && Auth::user()->isAdmin();
+        return Auth::check() && Auth::user()->isManagerOrAdmin();
     }
 
     public static function form(Form $form): Form

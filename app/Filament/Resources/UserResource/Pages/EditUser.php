@@ -3,11 +3,9 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
-use App\Mail\UserApproved;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 
 class EditUser extends EditRecord
 {
@@ -22,34 +20,21 @@ class EditUser extends EditRecord
 
     protected function afterSave(): void
     {
-        $record = $this->record;
-        $originalData = $this->record->getOriginal();
+        // Approval metadata and the approval email are handled by the User model.
+        if (! $this->record->wasChanged('is_approved')) {
+            return;
+        }
 
-        // Check if approval status changed from false to true
-        if (!$originalData['is_approved'] && $record->is_approved) {
-            // Update approval metadata manually since toggle doesn't trigger model observer
-            $record->update([
-                'approved_at' => now(),
-                'approved_by' => Auth::id(),
-            ]);
-
-            // Send approval email
-            Mail::to($record->email)->queue(new UserApproved($record));
-
-            \Filament\Notifications\Notification::make()
+        $this->record->is_approved
+            ? Notification::make()
                 ->title('User Approved')
                 ->success()
-                ->body("User {$record->name} has been approved and notified via email.")
-                ->send();
-        }
-
-        // Check if approval status changed from true to false
-        if ($originalData['is_approved'] && !$record->is_approved) {
-            \Filament\Notifications\Notification::make()
+                ->body("{$this->record->name} has been approved and notified by email.")
+                ->send()
+            : Notification::make()
                 ->title('User Unapproved')
                 ->warning()
-                ->body("User {$record->name} has been unapproved.")
+                ->body("{$this->record->name} has been unapproved.")
                 ->send();
-        }
     }
 }

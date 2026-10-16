@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Models\DocumentType;
 use App\Models\Student;
 use Closure;
-use Filament\Forms\Components\FileUpload;
+use App\Filament\Forms\DocumentFileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
@@ -100,15 +100,7 @@ class DocumentResource extends Resource
                                             ->required()
                                             ->maxLength(255),
 
-                                        FileUpload::make('document_url')
-                                            ->label('Upload File')
-                                            ->directory('documents')
-                                            ->disk('public')
-                                            ->visibility('public')
-                                            ->required()
-                                            ->openable()
-                                            ->downloadable()
-                                            ->previewable(),
+                                        DocumentFileUpload::make(),
 
                                         Select::make('status')
                                             ->label('Status')
@@ -181,6 +173,14 @@ class DocumentResource extends Resource
             })
             ->filters([])
             ->actions([
+                Tables\Actions\Action::make('download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->iconSize('lg')
+                    ->hiddenLabel()
+                    ->tooltip('Download')
+                    ->color('success')
+                    ->url(fn (Document $record) => route('documents.download', $record))
+                    ->visible(fn (Document $record) => filled($record->document_url)),
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),

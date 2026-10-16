@@ -13,7 +13,7 @@ use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\Student;
 use Closure;
-use Filament\Forms\Components\FileUpload;
+use App\Filament\Forms\DocumentFileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
@@ -90,15 +90,7 @@ class DocumentsRelationManager extends RelationManager
                                             ->required()
                                             ->maxLength(255),
 
-                                        FileUpload::make('document_url')
-                                            ->label('Upload File')
-                                            ->directory('documents')
-                                            ->disk('public')
-                                            ->visibility('public')
-                                            ->required()
-                                            ->openable()
-                                            ->downloadable()
-                                            ->previewable(),
+                                        DocumentFileUpload::make(),
 
                                         Select::make('status')
                                             ->label('Status')
@@ -140,6 +132,8 @@ class DocumentsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('document')
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['student.user', 'documentType']))
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('documentType.name')
                     ->label('Type')
@@ -165,10 +159,24 @@ class DocumentsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->headerActions([
+                Tables\Actions\Action::make('downloadAll')
+                    ->label('Download all')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->color('gray')
+                    ->url(fn () => route('students.documents.download', $this->getOwnerRecord()))
+                    ->visible(fn () => $this->getOwnerRecord()->documents()->exists()),
                 Tables\Actions\CreateAction::make()
             ])
             ->filters([])
             ->actions([
+                Tables\Actions\Action::make('download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->iconSize('lg')
+                    ->hiddenLabel()
+                    ->tooltip(fn (Document $record) => "Download as \"{$record->download_file_name}\"")
+                    ->color('success')
+                    ->url(fn (Document $record) => route('documents.download', $record))
+                    ->visible(fn (Document $record) => filled($record->document_url)),
                 Tables\Actions\ViewAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\EditAction::make()->iconSize('lg')->hiddenLabel(),
                 Tables\Actions\DeleteAction::make()->iconSize('lg')->hiddenLabel(),

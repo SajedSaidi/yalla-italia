@@ -4,9 +4,9 @@ namespace App\Console\Commands;
 
 use App\Mail\ApplicationDeadlineReminder;
 use App\Models\Application;
+use App\Support\SafeMail;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class NotifyApplicationDeadlines extends Command
@@ -14,44 +14,47 @@ class NotifyApplicationDeadlines extends Command
     protected $signature = 'notify:application-deadlines';
     protected $description = 'Send application deadline reminders to students';
 
-    public function handle()
+    public function handle(): int
     {
-        try {
-            // Fetch all unpaid future-deadline applications, eager-loading student & user
-            $applications = Application::with(['student.user', 'program'])
-                ->where('payment_status', 'unpaid')
-                ->whereHas(
-                    'program',
-                    fn($q) =>
-                    $q->where('application_deadline', '>=', now())->where('application_deadline', '<=', now()->addDays(21))
-                )
-                ->get();
+        // All unpaid applications whose program deadline is within the next 21 days
+        $applications = Application::with(['student.user', 'program.university', 'program.major.languages', 'program.academicYear'])
+            ->where('payment_status', 'unpaid')
+            ->whereHas(
+                'program',
+                fn ($q) => $q->where('application_deadline', '>=', now())->where('application_deadline', '<=', now()->addDays(21))
+            )
+            ->get()
+            ->filter(fn (Application $app) => $app->student?->user);
 
-            // Group by student email
-            $byEmail = $applications->groupBy(fn($app) => $app->student->user->email);
+        $sent = 0;
+        $failed = 0;
 
-            foreach ($byEmail as $email => $apps) {
-                // Derive student name from the first record
-                $studentName = $apps->first()->student->user->name;
+        // One email per student, listing all of their upcoming deadlines
+        foreach ($applications->groupBy('student_id') as $apps) {
+            $user = $apps->first()->student->user;
 
-                // Build a Collection of program data
-                $programs = $apps->map(function ($app) {
+            $programs = $apps
+                ->map(function (Application $app) {
                     $deadline = Carbon::parse($app->program->application_deadline);
+
                     return [
                         'title'     => $app->program->composite_title,
                         'deadline'  => $deadline,
                         'fee'       => $app->program->application_fee,
-                        'days_left' => floor(now()->floatDiffInDays($deadline, false)),
+                        'days_left' => (int) floor(now()->floatDiffInDays($deadline, false)),
                     ];
-                });
+                })
+                ->sortBy('deadline')
+                ->values();
 
-                // Queue the mailable
-                Mail::to($email)->queue(new ApplicationDeadlineReminder($studentName, $programs));
-            }
-
-            Log::info('Application deadline reminders sent to ' . count($byEmail) . ' students.');
-        } catch (\Exception $e) {
-            Log::error('Failed to send application deadline reminders: ' . $e->getMessage());
+            SafeMail::send($user->email, new ApplicationDeadlineReminder($user->name, $programs)) ? $sent++ : $failed++;
         }
+
+        $message = "Application deadline reminders sent to {$sent} student(s)" . ($failed ? ", {$failed} failed (see log)." : '.');
+
+        $this->info($message);
+        Log::info($message);
+
+        return $failed ? self::FAILURE : self::SUCCESS;
     }
 }
