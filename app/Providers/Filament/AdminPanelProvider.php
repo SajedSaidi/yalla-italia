@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->sidebarWidth('16rem')
             ->sidebarCollapsibleOnDesktop(true)
             ->brandLogo(fn() => view('components.brand-logo'))
             ->brandLogoHeight('3rem')
